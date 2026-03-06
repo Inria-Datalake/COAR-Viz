@@ -2,7 +2,7 @@ name: docker_image_push_on_commit
 
 on:
   push:
-
+ 
 jobs:
   docker:
     runs-on: ubuntu-latest
