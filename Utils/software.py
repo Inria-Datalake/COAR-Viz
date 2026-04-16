@@ -38,12 +38,13 @@ def software_all_mentions(software, db):
                                                                                            offsetStart:offsetEnd] + '</strong></span>' + context[
                                                                                                                                          offsetEnd:]
                 max_score = float('-inf')
-                for attribute, details in json_software["mentionContextAttributes"].items():
-                    if details["score"] > max_score:
-                        max_score = details["score"]
-                        max_attribute = attribute
-                        software_title = f"{json_software['software_name']['normalizedForm']}"
-                dic_context[max_attribute].append(context)
+                if 'documentContextAttributes' in json_software:
+                    for attribute, details in json_software["documentContextAttributes"].items():
+                        if details["score"] > max_score:
+                            max_score = details["score"]
+                            max_attribute = attribute
+                            software_title = f"{json_software['software_name']['normalizedForm']}"
+                    dic_context[max_attribute].append(context)
         list_to_apppend.append(dic_context)
         list_doc_contexts.append(list_to_apppend)
     # STAT --------------------------------------------------------------------
@@ -53,7 +54,7 @@ def software_all_mentions(software, db):
             FILTER soft.software_name.normalizedForm == "{software}"
             LET max_field = (
                         FOR field IN ['used', 'created', 'shared'] 
-                            LET score = soft.mentionContextAttributes[field].score
+                            LET score = soft.documentContextAttributes[field].score 
                             SORT score DESC 
                             LIMIT 1 
                             RETURN field 
@@ -81,7 +82,7 @@ def software_all_mentions(software, db):
                     // Collect the field with the highest score and its context
                     LET max_field = (
                         FOR field IN ['used', 'created', 'shared']
-                            LET score = software.mentionContextAttributes[field].score
+                            LET score = software.documentContextAttributes[field].score
                             FILTER score != null
                             SORT score DESC
                             LIMIT 1
