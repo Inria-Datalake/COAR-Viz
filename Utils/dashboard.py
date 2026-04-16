@@ -63,6 +63,9 @@ def dashboard(db, structure):
                 json_software = db['softwares'].fetchDocument(software_id).getStore()
                 software = json_software['software_name']['normalizedForm']
 
+                if 'mentionContextAttributes' not in json_software:
+                    continue
+
                 max_attribute, max_score = max(
                     json_software["mentionContextAttributes"].items(),
                     key=lambda item: item[1]["score"],

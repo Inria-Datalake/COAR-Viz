@@ -91,11 +91,12 @@ def doc_software(file_id,software,db):
                                                                                                                 offsetStart:offsetEnd] + '</strong></span>' + context[
                                                                                                                                                               offsetEnd:]
             max_score = float('-inf')
-            for attribute, details in json_software["mentionContextAttributes"].items():
-                if details["score"] > max_score:
-                    max_score = details["score"]
-                    max_attribute = attribute
-            dic_context[max_attribute].append(context)
+            if 'mentionContextAttributes' in json_software:
+                for attribute, details in json_software["mentionContextAttributes"].items():
+                    if details["score"] > max_score:
+                        max_score = details["score"]
+                        max_attribute = attribute
+                dic_context[max_attribute].append(context)
 
     title = db.AQLQuery(f"LET doc = DOCUMENT('{file_meta_id}') RETURN doc.title", rawResults=True)
     title = title[0]
@@ -192,11 +193,12 @@ def doc_info_from_id(file_id,db):
                                                                                        offsetStart:offsetEnd] + '</strong></span>' + context[
                                                                                                                                      offsetEnd:]
             max_score = float('-inf')
-            for attribute, details in json_software["mentionContextAttributes"].items():
-                if details["score"] > max_score:
-                    max_score = details["score"]
-                    max_attribute = attribute
-            dic_context[max_attribute].append(context)
+            if 'mentionContextAttributes' in json_software:
+                for attribute, details in json_software["mentionContextAttributes"].items():
+                    if details["score"] > max_score:
+                        max_score = details["score"]
+                        max_attribute = attribute
+                dic_context[max_attribute].append(context)
         try:
             if json_software['url']:
                url = json_software['url']
