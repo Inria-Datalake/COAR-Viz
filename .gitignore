@@ -5,3 +5,4 @@ docker.txt
 sandbox/
 .env
 up_viz_docker.sh
+.idea
