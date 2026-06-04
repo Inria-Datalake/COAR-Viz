@@ -103,8 +103,11 @@ image works in containers without a `.env` file.
 | `ARANGO_LOGIN` | ArangoDB user | `root` |
 | `ARANGO_PASSWORD` | ArangoDB password | `changeme` |
 | `ELASTIC_HOST`, `ELASTIC_PORT` | Elasticsearch connection | none — must be set |
+| `URL_PREFIX` | URL prefix the app is mounted under behind a reverse proxy | empty — set `/software` in production |
 
 The database name (`SOF-viz-COAR`) is fixed in code and created automatically on first launch.
+The app also creates its secondary ArangoDB indexes automatically on startup (`ensure_indexes`
+in `Utils/db.py`, called from `app/app.py`); this is idempotent and safe on every launch.
 
 ###  Usage
 
@@ -114,5 +117,7 @@ The database name (`SOF-viz-COAR`) is fixed in code and created automatically on
 > python run.py
 > ```
 >
-> The app serves on **`http://0.0.0.0:8040`**. It assumes it runs behind a reverse proxy mounted at
-> **`/software`** (every generated URL is prefixed with `/software`; see `run.py`).
+> The app serves on **`http://0.0.0.0:8040`**. By default URLs are **un-prefixed**, so it works as-is
+> for local/source runs. When running behind a reverse proxy mounted at a sub-path, set
+> `URL_PREFIX` (e.g. `URL_PREFIX=/software`): `run.py` prepends it to every generated URL and exposes
+> it to client-side JS as `window.URL_PREFIX`.
