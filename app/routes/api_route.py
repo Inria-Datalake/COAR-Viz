@@ -327,6 +327,18 @@ def accepted_count():
 def rejected_count():
     return Response(json.dumps(_daily_counts("rejected"), allow_nan=True), mimetype="application/json")
 
+@app.route("/api/used_count")
+def used_count():
+    return Response(json.dumps(_daily_counts("mentions_used"), allow_nan=True), mimetype="application/json")
+
+@app.route("/api/created_count")
+def created_count():
+    return Response(json.dumps(_daily_counts("mentions_created"), allow_nan=True), mimetype="application/json")
+
+@app.route("/api/shared_count")
+def shared_count():
+    return Response(json.dumps(_daily_counts("mentions_shared"), allow_nan=True), mimetype="application/json")
+
 @app.route("/api/accepted_notification/<hal_id>/<software_name>", methods=["POST"])
 def accepted_notification(hal_id, software_name):
     try:

@@ -187,6 +187,37 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     /* ============================================================
+       CREATE CHARACTERIZATION LINE CHARTS (used / created / shared)
+    ============================================================ */
+
+    createChart(
+        window.URL_PREFIX + "/api/used_count",
+        "lineChartUsed",
+        "Used software (last 30 days)",
+        "Number of Mentions",
+        "rgba(108, 155, 207, 1)",
+        "rgba(108, 155, 207, 1)"
+    );
+
+    createChart(
+        window.URL_PREFIX + "/api/created_count",
+        "lineChartCreated",
+        "Created software (last 30 days)",
+        "Number of Mentions",
+        "rgba(54, 57, 73, 1)",
+        "rgba(54, 57, 73, 1)"
+    );
+
+    createChart(
+        window.URL_PREFIX + "/api/shared_count",
+        "lineChartShared",
+        "Shared software (last 30 days)",
+        "Number of Mentions",
+        "rgba(103, 116, 131, 1)",
+        "rgba(103, 116, 131, 1)"
+    );
+
+    /* ============================================================
        CREATE BAR CHART (NEW)
     ============================================================ */
 

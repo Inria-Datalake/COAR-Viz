@@ -393,6 +393,97 @@ def update_nb_rejected(db):
         print(f"⚠️ Unexpected error in update_nb_rejected: {e}")
         return None
 
+
+# Daily counters split by mention characterization. One collection per attribute
+# ("mentions_used" / "mentions_created" / "mentions_shared"), same {date, count} shape
+# as the `mentions` counter above, so the existing `_daily_counts` reader and the home
+# line-chart helper work on them unchanged.
+_ATTRIBUTE_COLLECTIONS = {
+    "used": "mentions_used",
+    "created": "mentions_created",
+    "shared": "mentions_shared",
+}
+
+
+def dominant_attribute(mention):
+    """Return the dominant characterization of a software mention — "used",
+    "created", or "shared" — or None if it carries no usable characterization.
+
+    This must mirror the dominant-attribute logic in ``utils/dashboard.py``
+    (``_AGG_TAIL``) so the home-page trend charts and the dashboard agree:
+
+      - mentions store ``mentionContextAttributes`` with sub-keys ``used`` /
+        ``created`` / ``shared``, each an object with a ``.score`` (a float).
+      - the dominant attribute is the one with the HIGHEST score.
+      - on a tie, resolve in the order used > created > shared.
+      - the field MAY BE MISSING on some mentions (documented gotcha in
+        CLAUDE.md) — and individual sub-keys/scores may be absent too. In any
+        of those cases there is no usable characterization, so return None.
+
+    `mention` is the raw mention dict from the SOFTCITE JSON (so the attribute
+    block is at ``mention.get("mentionContextAttributes")``).
+    """
+    attributes = mention.get("mentionContextAttributes")
+    if not isinstance(attributes, dict):
+        return None
+
+    # Collect only the scores that are actually present and numeric, mirroring
+    # AQL's MAX([...]) which silently ignores nulls: a mention carrying just one
+    # of the three sub-keys still resolves to that one.
+    scores = {}
+    for attr in ("used", "created", "shared"):
+        block = attributes.get(attr)
+        if isinstance(block, dict):
+            score = block.get("score")
+            if isinstance(score, (int, float)):
+                scores[attr] = score
+
+    if not scores:
+        return None
+
+    # Highest score wins; ties resolve used > created > shared. Iterating in that
+    # fixed order and keeping the first strict maximum encodes the tie-break.
+    best = None
+    for attr in ("used", "created", "shared"):
+        if attr in scores and (best is None or scores[attr] > scores[best]):
+            best = attr
+    return best
+
+
+def update_nb_attribute(db, attribute):
+    """Increment today's daily counter for one characterization bucket.
+
+    `attribute` must be one of "used" / "created" / "shared"; anything else
+    (including None) is a no-op, so callers can pass ``dominant_attribute(...)``
+    straight through without guarding.
+    """
+    collection = _ATTRIBUTE_COLLECTIONS.get(attribute)
+    if collection is None:
+        return None
+
+    check_or_create_collection(db, collection)
+    today_str = date.today().strftime("%Y-%m-%d")
+
+    try:
+        # UPSERT in ArangoDB: insert if not exists, update if exists. The
+        # collection name is a trusted constant from _ATTRIBUTE_COLLECTIONS
+        # (never user input), so interpolating it here is safe.
+        query = f"""
+        UPSERT {{ date: "{today_str}" }}
+        INSERT {{ date: "{today_str}", count: 1 }}
+        UPDATE {{ count: OLD.count + 1 }} IN {collection}
+        RETURN NEW
+        """
+        return db.AQLQuery(query, rawResults=True)
+
+    except AQLQueryError as e:
+        print(f"⚠️ AQL error while updating {collection}: {e}")
+        return None
+    except Exception as e:
+        print(f"⚠️ Unexpected error in update_nb_attribute: {e}")
+        return None
+
+
 def insert_json_db(data_path_json,data_path_xml,db, blacklist):
     elastich_alive = is_elasticsearch_alive()
 
@@ -548,6 +639,10 @@ def insert_json_db(data_path_json,data_path_xml,db, blacklist):
                 edge_doc_soft['_to'] = software_document._id
                 edge_doc_soft.save()
                 update_nb_mention(db)
+                # split the daily mention count by characterization for the
+                # home-page used/created/shared trend charts (no-op when the
+                # mention has no usable mentionContextAttributes)
+                update_nb_attribute(db, dominant_attribute(mention))
 
 # REFERENCES -----------------------------------------------------
 
