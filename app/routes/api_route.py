@@ -305,109 +305,44 @@ def str_from_halid(struc_id):
     data = db.AQLQuery(query, rawResults=True, batchSize=1)
     return (list(data))
 
+def _daily_counts(collection):
+    """Last-30-days counts (oldest → newest) for a daily counter collection.
+
+    One query instead of 30: fetch every matching day-row at once and map it back onto the
+    day list, filling None where a day has no row (preserving the chart's expected shape).
+    `collection` is a trusted hard-coded constant — never user input — so interpolating it
+    is safe; the actual data (`days`) is passed via bindVars.
+    """
+    today = date.today()
+    last_30_days = list(reversed(
+        [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
+    ))  # oldest → newest
+
+    query = f'''
+    FOR nb IN {collection}
+        FILTER nb.date IN @days
+        RETURN {{ date: nb.date, count: nb.count }}
+    '''
+    rows = db.AQLQuery(query, rawResults=True, bindVars={"days": last_30_days})
+    by_date = {row["date"]: row["count"] for row in rows}
+    return [by_date.get(day) for day in last_30_days]
+
+
 @app.route("/api/notification_count")
 def notification_count():
-    list_nb_of_notif = []
-
-    today = date.today()
-    last_30_days = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
-    last_30_days = list(reversed(last_30_days))  # oldest → newest
-
-    for day in last_30_days:
-        query = f'''
-        FOR nb IN notifications
-            FILTER nb.date == "{day}"
-            RETURN nb.count
-        '''
-        data = db.AQLQuery(query, rawResults=True, batchSize=1)
-
-        if len(data) == 0:
-            count = None
-        else:
-            count = data[0]
-
-        list_nb_of_notif.append(count)
-
-    # Return JSON with NaN allowed
-    return Response(json.dumps(list_nb_of_notif, allow_nan=True), mimetype="application/json")
+    return Response(json.dumps(_daily_counts("notifications"), allow_nan=True), mimetype="application/json")
 
 @app.route("/api/mention_count")
 def mention_count():
-    list_nb_of_notif = []
-
-    today = date.today()
-    last_30_days = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
-    last_30_days = list(reversed(last_30_days))  # oldest → newest
-
-    for day in last_30_days:
-        query = f'''
-        FOR nb IN mentions
-            FILTER nb.date == "{day}"
-            RETURN nb.count
-        '''
-        data = db.AQLQuery(query, rawResults=True, batchSize=1)
-
-        if len(data) == 0:
-            count = None
-        else:
-            count = data[0]
-
-        list_nb_of_notif.append(count)
-
-    # Return JSON with NaN allowed
-    return Response(json.dumps(list_nb_of_notif, allow_nan=True), mimetype="application/json")
+    return Response(json.dumps(_daily_counts("mentions"), allow_nan=True), mimetype="application/json")
 
 @app.route("/api/accepted_count")
 def accepted_count():
-    list_nb_of_notif = []
-
-    today = date.today()
-    last_30_days = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
-    last_30_days = list(reversed(last_30_days))  # oldest → newest
-
-    for day in last_30_days:
-        query = f'''
-        FOR nb IN accepted
-            FILTER nb.date == "{day}"
-            RETURN nb.count
-        '''
-        data = db.AQLQuery(query, rawResults=True, batchSize=1)
-
-        if len(data) == 0:
-            count = None
-        else:
-            count = data[0]
-
-        list_nb_of_notif.append(count)
-
-    # Return JSON with NaN allowed
-    return Response(json.dumps(list_nb_of_notif, allow_nan=True), mimetype="application/json")
+    return Response(json.dumps(_daily_counts("accepted"), allow_nan=True), mimetype="application/json")
 
 @app.route("/api/rejected_count")
 def rejected_count():
-    list_nb_of_notif = []
-
-    today = date.today()
-    last_30_days = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
-    last_30_days = list(reversed(last_30_days))  # oldest → newest
-
-    for day in last_30_days:
-        query = f'''
-        FOR nb IN rejected
-            FILTER nb.date == "{day}"
-            RETURN nb.count
-        '''
-        data = db.AQLQuery(query, rawResults=True, batchSize=1)
-
-        if len(data) == 0:
-            count = None
-        else:
-            count = data[0]
-
-        list_nb_of_notif.append(count)
-
-    # Return JSON with NaN allowed
-    return Response(json.dumps(list_nb_of_notif, allow_nan=True), mimetype="application/json")
+    return Response(json.dumps(_daily_counts("rejected"), allow_nan=True), mimetype="application/json")
 
 @app.route("/api/accepted_notification/<hal_id>/<software_name>", methods=["POST"])
 def accepted_notification(hal_id, software_name):
