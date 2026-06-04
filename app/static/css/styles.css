@@ -146,6 +146,11 @@ body{
     box-shadow: 0 3px 4px #00000029;
     border-radius: 10px;
     background-color: #f7f7f7;
+    position: relative;       /* anchor for the responsive canvas */
+    height: 60vh;             /* bounded box; chart fills it instead of width/2 */
+    min-height: 360px;
+    max-height: 620px;
+    padding: 10px;
 }
 
 .software_canva_info .titre-block{
@@ -700,6 +705,12 @@ main .analyse{ /* Style Grid du block Main */
 
 .dis-candidate.open .dis-chevron {
   transform: rotate(180deg);
+}
+
+.dis-candidate-loading {
+  padding: 12px 15px;
+  color: #999;
+  font-style: italic;
 }
 
 .dis-candidate-body {

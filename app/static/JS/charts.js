@@ -79,6 +79,7 @@ async function generateBubbleChart(selector) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,   // let the (bounded) container set the size, not width/2
             scales: {
                 y: {
                     suggestedMin: ydatamin,

@@ -369,6 +369,29 @@ async function renderComparison(ogJson, ogName, swJson, swName) {
 /*****************************************
  *  CARD RENDERING
  *****************************************/
+/**
+ * Run async task thunks with a bounded number in flight at once.
+ * Keeps the server (and browser socket pool) from being flooded when a
+ * popular software yields hundreds of candidates.
+ */
+async function runWithConcurrency(tasks, limit = 6) {
+    let next = 0;
+    const workers = Array.from(
+        { length: Math.min(limit, tasks.length) },
+        async () => {
+            while (next < tasks.length) {
+                const idx = next++;
+                try {
+                    await tasks[idx]();
+                } catch (err) {
+                    console.error("Candidate card render failed:", err);
+                }
+            }
+        }
+    );
+    await Promise.all(workers);
+}
+
 async function renderComparisonCards() {
     cardContainer.innerHTML = ""; // Clear old
 
@@ -392,35 +415,44 @@ async function renderComparisonCards() {
 
     const list = layout.querySelector(".dis-candidate-list");
 
-    for (const [sw, docid] of state.currentList) {
+    // Skip the identical mention (same software, same document)
+    const candidates = state.currentList.filter(
+        ([sw, docid]) => !(og.docid === docid && og.name === sw)
+    );
 
-        // Skip the identical mention (same software, same document)
-        if (og.docid === docid && og.name === sw) continue;
-
-        const swJSON = await fetchSoftwareJSON(sw, docid);
-        const cmp = await renderComparison(og.json, og.name, [swJSON], sw);
-
-        const scoreChip = cmp.headlineScore != null
-            ? `<span class="dis-score">${cmp.headlineScore}%</span>`
-            : "";
-
+    // Append placeholder cards up front so DOM order matches the list,
+    // then fill each concurrently as its data resolves.
+    const tasks = candidates.map(([sw, docid]) => {
         const card = document.createElement("div");
         card.className = "dis-candidate";
-        card.innerHTML = `
-            <button type="button" class="dis-candidate-header">
-                <span class="dis-cand-name">${cmp.nameDiff.sw}</span>
-                ${scoreChip}
-                <span class="dis-metric ${cmp.authorBadge.cls}">auth ${cmp.authorBadge.text}</span>
-                <span class="dis-metric ${cmp.affilBadge.cls}">affil ${cmp.affilBadge.text}</span>
-                <span class="dis-chevron material-symbols-outlined">expand_more</span>
-            </button>
-            <div class="dis-candidate-body">
-                <div class="comparison-box">${cmp.detailsHTML}</div>
-                <div class="related-software">${renderJSON([swJSON], sw, docid)}</div>
-            </div>
-        `;
+        card.innerHTML = `<div class="dis-candidate-loading">Loading ${sw}…</div>`;
         list.appendChild(card);
-    }
+
+        return async () => {
+            const swJSON = await fetchSoftwareJSON(sw, docid);
+            const cmp = await renderComparison(og.json, og.name, [swJSON], sw);
+
+            const scoreChip = cmp.headlineScore != null
+                ? `<span class="dis-score">${cmp.headlineScore}%</span>`
+                : "";
+
+            card.innerHTML = `
+                <button type="button" class="dis-candidate-header">
+                    <span class="dis-cand-name">${cmp.nameDiff.sw}</span>
+                    ${scoreChip}
+                    <span class="dis-metric ${cmp.authorBadge.cls}">auth ${cmp.authorBadge.text}</span>
+                    <span class="dis-metric ${cmp.affilBadge.cls}">affil ${cmp.affilBadge.text}</span>
+                    <span class="dis-chevron material-symbols-outlined">expand_more</span>
+                </button>
+                <div class="dis-candidate-body">
+                    <div class="comparison-box">${cmp.detailsHTML}</div>
+                    <div class="related-software">${renderJSON([swJSON], sw, docid)}</div>
+                </div>
+            `;
+        };
+    });
+
+    await runWithConcurrency(tasks, 6);
 }
 
 /*****************************************
