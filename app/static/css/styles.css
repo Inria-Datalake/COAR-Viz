@@ -192,9 +192,14 @@ body{
 /* ======================= FONT ======================= */
 
 
+h1{
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
 h2{
     font-weight: 600;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
 }
 
 h3{
@@ -421,8 +426,8 @@ main .analyse{ /* Style Grid du block Main */
     align-items: start;
 }
 
-.canvas h1,h3{
-    text-align: center;
+.canvas h1, .canvas h3{
+    text-align: left;
 }
 
 .canvas canvas{
@@ -449,7 +454,7 @@ main .analyse{ /* Style Grid du block Main */
   z-index: 1;
   margin-bottom: 10px;
   text-align: center;
-  font-size: 26px;
+  font-size: 1.25rem;
 }
 
 .software-info h1::before { /* Box des En-tête */
@@ -1159,7 +1164,7 @@ input#input-box-dis{
   z-index: 1;
   margin-bottom: 10px;
   text-align: center;
-  font-size: 26px;
+  font-size: 1.25rem;
 }
 
 .home-info h1::before { /* Box des En-tête */
