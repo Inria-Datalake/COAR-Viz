@@ -141,9 +141,9 @@ def check_or_create_collection(db, collection_name, collection_type='Collection'
 # ~59k documents / ~190k softwares / ~750k authors in production). Edge collections already
 # carry an automatic `_from`/`_to` edge index, so traversals need nothing extra here.
 INDEX_FIELDS = {
-    'documents':  [['file_hal_id'], ['date']],
+    'documents':  [['file_hal_id']],
     'structures': [['id_haureal'], ['type']],
-    'softwares':  [['software_name.normalizedForm'], ['url.normalizedForm']],
+    'softwares':  [['software_name.normalizedForm'], ['software_name.rawForm']],
     'authors':    [['id.halauthorid']],
 }
 
