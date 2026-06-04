@@ -67,7 +67,7 @@ async function setOriginalSoftware(name, docid) {
 /*****************************************
  *  RENDER HELPERS
  *****************************************/
-function renderJSON(obj,sw,docid,showOgButton = true) {
+function renderJSON(obj,sw,docid) {
     if (!obj) return "<p>No data available.</p>";
 
     // At this point, obj must be an array
@@ -104,9 +104,9 @@ function renderJSON(obj,sw,docid,showOgButton = true) {
         return `
             <div class="doc-card">
                 <h3>${doc.title || "(No title)"}</h3>
-                ${showOgButton ? `<button class="set-og-btn" data-sw="${sw}" data-docid="${docid}">
+                <button class="set-og-btn" data-sw="${sw}" data-docid="${docid}">
                     Use as Original
-                </button>` : ""}
+                </button>
                 
                 ${verification_status}
                 
@@ -300,159 +300,147 @@ async function renderComparison(ogJson, ogName, swJson, swName) {
 
 
     // -----------------------------------------
-    // STRUCTURED OUTPUT
-    //   - summary fields drive the always-visible candidate header
-    //   - detailsHTML fills the collapsible body
+    // HTML OUTPUT
     // -----------------------------------------
-    const activeRatios = [];
-    if (sliders.range1.value > 0) activeRatios.push(ratioJson.normal_ratio);
-    if (sliders.range2.value > 0) activeRatios.push(ratioJson.token_ratio);
-    if (sliders.range3.value > 0) activeRatios.push(ratioJson.partial_ratio);
-    const headlineScore = activeRatios.length ? Math.max(...activeRatios) : null;
+    const toggleId = "cmp-" + Math.random().toString(36).slice(2);
 
-    const authorBadge = {
-        text: `${commonAuthors.length} / ${ogAuthors.length} (${authorPct}%)`,
-        cls: pctColor(authorPct)
-    };
-    const affilBadge = {
-        text: `${commonStruct.length} / ${ogStruct.length} (${structPct}%)`,
-        cls: pctColor(structPct)
-    };
+    return `
+        <div class="comparison-box">
 
-    const detailsHTML = `
-        ${docIDcompare}
+            <h3>Similarity Score</h3>
+            <h3>Software Name Difference</h3>
+            
+            ${docIDcompare}
+            
+            <div class="comparison-row">
+                <span class="label">Original:</span>
+                <span class="value">${nameDiff.og}</span>
+            </div>
+            <div class="comparison-row">
+                <span class="label">Related:</span>
+                <span class="value">${nameDiff.sw}</span>
+            </div>
+            
+            ${crossContextSummary}
+            
+            ${ratioHTML}
+            
+            <div class="comparison-row">
+                <span class="label">Authors in common:</span>
+                <span class="value ${pctColor(authorPct)}">
+                    ${commonAuthors.length} / ${ogAuthors.length} (${authorPct}%)
+                </span>
+            </div>
 
-        <div class="comparison-row">
-            <span class="label">Original:</span>
-            <span class="value">${nameDiff.og}</span>
+            <div class="comparison-row">
+                <span class="label">Affiliations in common:</span>
+                <span class="value ${pctColor(structPct)}">
+                    ${commonStruct.length} / ${ogStruct.length} (${structPct}%)
+                </span>
+            </div>
+
+            <button class="cmp-toggle" onclick="document.getElementById('${toggleId}').classList.toggle('open')">
+                Show details ▼
+            </button>
+
+            <div id="${toggleId}" class="cmp-details">
+
+                <h4>Authors in common</h4>
+                <ul>${listToHTML(commonAuthors, ogAuthorsById)}</ul>
+
+                <h4>Authors ONLY in Original</h4>
+                <ul>${listToHTML(diffAuthorsOG, ogAuthorsById)}</ul>
+
+                <h4>Authors ONLY in Related</h4>
+                <ul>${listToHTML(diffAuthorsSW, swAuthorsById)}</ul>
+
+                <h4>Affiliations in common</h4>
+                <ul>${listToHTML(commonStruct, ogStructById)}</ul>
+
+                <h4>Affiliations ONLY in Original</h4>
+                <ul>${listToHTML(diffStructOG, ogStructById)}</ul>
+
+                <h4>Affiliations ONLY in Related</h4>
+                <ul>${listToHTML(diffStructSW, swStructById)}</ul>
+
+            </div>
         </div>
-        <div class="comparison-row">
-            <span class="label">Related:</span>
-            <span class="value">${nameDiff.sw}</span>
-        </div>
-
-        ${crossContextSummary}
-
-        ${ratioHTML}
-
-        <div class="comparison-row">
-            <span class="label">Authors in common:</span>
-            <span class="value ${authorBadge.cls}">${authorBadge.text}</span>
-        </div>
-        <div class="comparison-row">
-            <span class="label">Affiliations in common:</span>
-            <span class="value ${affilBadge.cls}">${affilBadge.text}</span>
-        </div>
-
-        <h4>Authors in common</h4>
-        <ul>${listToHTML(commonAuthors, ogAuthorsById)}</ul>
-
-        <h4>Authors ONLY in Original</h4>
-        <ul>${listToHTML(diffAuthorsOG, ogAuthorsById)}</ul>
-
-        <h4>Authors ONLY in Related</h4>
-        <ul>${listToHTML(diffAuthorsSW, swAuthorsById)}</ul>
-
-        <h4>Affiliations in common</h4>
-        <ul>${listToHTML(commonStruct, ogStructById)}</ul>
-
-        <h4>Affiliations ONLY in Original</h4>
-        <ul>${listToHTML(diffStructOG, ogStructById)}</ul>
-
-        <h4>Affiliations ONLY in Related</h4>
-        <ul>${listToHTML(diffStructSW, swStructById)}</ul>
     `;
-
-    return { headlineScore, nameDiff, authorBadge, affilBadge, detailsHTML };
 }
 
 /*****************************************
  *  CARD RENDERING
  *****************************************/
-/**
- * Run async task thunks with a bounded number in flight at once.
- * Keeps the server (and browser socket pool) from being flooded when a
- * popular software yields hundreds of candidates.
- */
-async function runWithConcurrency(tasks, limit = 6) {
-    let next = 0;
-    const workers = Array.from(
-        { length: Math.min(limit, tasks.length) },
-        async () => {
-            while (next < tasks.length) {
-                const idx = next++;
-                try {
-                    await tasks[idx]();
-                } catch (err) {
-                    console.error("Candidate card render failed:", err);
-                }
-            }
-        }
-    );
-    await Promise.all(workers);
-}
-
 async function renderComparisonCards() {
     cardContainer.innerHTML = ""; // Clear old
 
     const og = state.og;
     if (!og) return;
 
-    // ----------------------------------
-    // TWO-PANE FRAME: pinned Original (left) + candidate list (right)
-    // The Original is rendered ONCE here, not per candidate.
-    // ----------------------------------
-    const layout = document.createElement("div");
-    layout.className = "dis-layout";
-    layout.innerHTML = `
-        <aside class="dis-original">
-            <div class="dis-original-label">Original</div>
-            ${renderJSON(og.json, og.name, og.docid, false)}
-        </aside>
-        <div class="dis-candidate-list"></div>
-    `;
-    cardContainer.appendChild(layout);
+    for (const [sw, docid] of state.currentList) {
 
-    const list = layout.querySelector(".dis-candidate-list");
-
-    // Skip the identical mention (same software, same document)
-    const candidates = state.currentList.filter(
-        ([sw, docid]) => !(og.docid === docid && og.name === sw)
-    );
-
-    // Append placeholder cards up front so DOM order matches the list,
-    // then fill each concurrently as its data resolves.
-    const tasks = candidates.map(([sw, docid]) => {
+        // ----------------------------------
+        // HTML FRAME
+        // ----------------------------------
         const card = document.createElement("div");
-        card.className = "dis-candidate";
-        card.innerHTML = `<div class="dis-candidate-loading">Loading ${sw}…</div>`;
-        list.appendChild(card);
+        card.className = "software-card-dis";
 
-        return async () => {
-            const swJSON = await fetchSoftwareJSON(sw, docid);
-            const cmp = await renderComparison(og.json, og.name, [swJSON], sw);
+        card.innerHTML = `
+            <div class="original-software">
+                <strong>Original: ${og.name}</strong>
+                <p>Loading...</p>
+            </div>
 
-            const scoreChip = cmp.headlineScore != null
-                ? `<span class="dis-score">${cmp.headlineScore}%</span>`
-                : "";
+            <div class="result-software">
+                <strong>Comparison</strong>
+                <p>Loading...</p>
+            </div>
 
-            card.innerHTML = `
-                <button type="button" class="dis-candidate-header">
-                    <span class="dis-cand-name">${cmp.nameDiff.sw}</span>
-                    ${scoreChip}
-                    <span class="dis-metric ${cmp.authorBadge.cls}">auth ${cmp.authorBadge.text}</span>
-                    <span class="dis-metric ${cmp.affilBadge.cls}">affil ${cmp.affilBadge.text}</span>
-                    <span class="dis-chevron material-symbols-outlined">expand_more</span>
-                </button>
-                <div class="dis-candidate-body">
-                    <div class="comparison-box">${cmp.detailsHTML}</div>
-                    <div class="related-software">${renderJSON([swJSON], sw, docid)}</div>
-                </div>
-            `;
-        };
-    });
+            <div class="related-software">
+                <strong>${sw}</strong>
+                <p>Loading...</p>
+            </div>
+        `;
 
-    await runWithConcurrency(tasks, 6);
+        cardContainer.appendChild(card);
+
+        // ----------------------------------
+        // FILL CONTENT
+        // ----------------------------------
+        if (og.docid === docid) {
+            if (og.name === sw){
+            // Skip identical document → do not display it
+            card.remove();     // cleanly remove from DOM
+            continue;}          // skip to next element
+        }
+        const originalDiv = card.querySelector(".original-software");
+        const resultDiv = card.querySelector(".result-software");
+        const relatedDiv = card.querySelector(".related-software");
+
+        const swJSON = await fetchSoftwareJSON(sw, docid);
+
+        originalDiv.innerHTML = renderJSON(og.json, og.name, og.docid)
+
+        relatedDiv.innerHTML = renderJSON([swJSON], sw, docid)
+
+        resultDiv.innerHTML = await renderComparison(og.json, og.name, [swJSON], sw);
+        // resultDiv.innerHTML = renderComparison(og.docid, docid);
+
+        // ----------------------------------
+        // CLICK HANDLER FOR “SET AS ORIGINAL”
+        // ----------------------------------
+        card.addEventListener("click", async (e) => {
+            if (e.target.classList.contains("set-og-btn")) {
+
+                const newOG = e.target.getAttribute("data-sw");
+                const newDocid = e.target.getAttribute("data-docid");
+
+                await setOriginalSoftware(newOG, newDocid);
+
+                await renderComparisonCards(); // refresh UI
+            }
+        });
+    }
 }
 
 /*****************************************
@@ -567,22 +555,6 @@ resultBox.addEventListener("click", function (event) {
         inputBox.value = softwareName;
         resultBox.style.display = "none";
         softwareClickHandler(softwareName);
-    }
-});
-
-// Delegated handler for the candidate list: expand/collapse + "Use as Original".
-// Attached once (not per card) so repeated renders don't stack listeners.
-cardContainer.addEventListener("click", async (event) => {
-    const header = event.target.closest(".dis-candidate-header");
-    if (header) {
-        header.closest(".dis-candidate").classList.toggle("open");
-        return;
-    }
-
-    const ogBtn = event.target.closest(".set-og-btn");
-    if (ogBtn) {
-        await setOriginalSoftware(ogBtn.getAttribute("data-sw"), ogBtn.getAttribute("data-docid"));
-        await renderComparisonCards(); // refresh UI with the new original
     }
 });
 

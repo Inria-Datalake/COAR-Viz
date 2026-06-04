@@ -616,11 +616,22 @@ main .analyse{ /* Style Grid du block Main */
 	margin: 10px;
 }
 
-/* Main container for the comparison layout */
+/* Main container for the three-column layout */
 #card-box-disambiguate {
   padding: 20px;
 }
 
+/* Three-column comparison row: Original | Comparison | Related, one per candidate */
+.software-card-dis {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+/* NOTE: the .dis-* rules below are retained but currently unused — the disambiguate
+   view was reverted to the three-column .software-card-dis layout above. */
 /* Two-pane layout: pinned Original on the left, candidate list on the right */
 .dis-layout {
   display: flex;
@@ -750,7 +761,8 @@ main .analyse{ /* Style Grid du block Main */
   }
 }
 
-/* Card styling shared by the related/result panels */
+/* Card styling shared by the three comparison columns */
+.original-software,
 .result-software,
 .related-software {
   background: white;
