@@ -18,7 +18,7 @@
 
 ![Capture d’écran du 2024-06-03 16-39-41](https://github.com/Samuel-Scalbert/SOFTware-Viz/assets/32683708/6be2a593-0508-4e52-a7cb-2cf28b768f00)
 
-## Presentation of the project
+## Overview
 
 COAR-Viz is a Flask web application that **visualizes software mentions** extracted from scholarly
 papers. It is the visualization + storage stage of a larger pipeline. Data lives in **ArangoDB**
@@ -44,54 +44,58 @@ Scholarly PDFs → GROBID → SOFTCITE → SOFTware-Sync → COAR-Viz (this app)
 | **SOFTware-Sync** | Merges the TEI XML and SOFTCITE JSON into a single document. |
 | **COAR-Viz** | Ingests the merged data into ArangoDB, mirrors it to Elasticsearch, and serves the dashboards, document views, and search. |
 
----
+## Table of contents
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the app](#running-the-app)
+- [Development](#development)
+- [Acknowledgements](#acknowledgements)
+
+## Requirements
+
+This app needs **two services reachable**:
+
+- an **ArangoDB** server — stores the graph. The app creates the `SOF-viz-COAR` database on first
+  launch, but not the server itself.
+- an **Elasticsearch** server — backs search and autocomplete. **Ingestion is refused if it is
+  unreachable.**
+
 ## Installation
 
-This app needs **two services reachable**: an **ArangoDB** server and an **Elasticsearch** server.
-ArangoDB stores the graph; Elasticsearch backs search/autocomplete and **ingestion is refused if it
-is unreachable**.
-
-<h4>From <code>source</code></h4>
-
-> 1. Clone the repository and enter it:
-> ```console
-> git clone <repository-url>
-> cd COAR-Viz
-> ```
->
-> 2. Create and activate a virtualenv:
-> ```console
-> python -m venv env
-> source env/bin/activate
-> ```
->
-> 3. Install the dependencies:
-> ```console
-> pip install -r requirements.txt
-> ```
->
-> 4. Start an ArangoDB container (the app creates the `SOF-viz-COAR` database on first launch,
->    but not the server itself):
-> ```console
-> docker run -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.11.6
-> ```
->
-> 5. Start an Elasticsearch instance and make sure it is reachable.
->
-> 6. Configure the environment (see [Configuration](#configuration)), then launch the app:
-> ```console
-> cp .env.example .env   # then edit .env for your setup
-> python run.py
-> ```
-
-### Configuration
-
-The app reads all configuration from environment variables, loaded from a `.env` file via
-[`python-dotenv`](https://pypi.org/project/python-dotenv/) (see `.env.example`). Copy the template
-and adjust it for your setup:
+Clone the repository and enter it:
 
 ```console
-cp .env.example .env
+git clone <repository-url>
+cd COAR-Viz
+```
+
+Create and activate a virtualenv, then install the dependencies:
+
+```console
+python -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+```
+
+Start an ArangoDB container (or point the app at an existing server in [Configuration](#configuration)):
+
+```console
+docker run -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.11.6
+```
+
+Start an Elasticsearch instance and make sure it is reachable, then continue to
+[Configuration](#configuration).
+
+## Configuration
+
+The app reads all configuration from environment variables, loaded from a `.env` file via
+[`python-dotenv`](https://pypi.org/project/python-dotenv/). Copy the template and adjust it for your
+setup:
+
+```console
+cp .env.example .env   # then edit .env
 ```
 
 Real environment variables (e.g. those injected by Docker) take precedence over `.env`, so the same
@@ -109,15 +113,27 @@ The database name (`SOF-viz-COAR`) is fixed in code and created automatically on
 The app also creates its secondary ArangoDB indexes automatically on startup (`ensure_indexes`
 in `utils/db.py`, called from `app/app.py`); this is idempotent and safe on every launch.
 
-###  Usage
+## Running the app
 
-> Run with the command below — the `SOF-viz-COAR` database is created automatically on the first
-> launch:
-> ```console
-> python run.py
-> ```
->
-> The app serves on **`http://0.0.0.0:8040`**. By default URLs are **un-prefixed**, so it works as-is
-> for local/source runs. When running behind a reverse proxy mounted at a sub-path, set
-> `URL_PREFIX` (e.g. `URL_PREFIX=/software`): `run.py` prepends it to every generated URL and exposes
-> it to client-side JS as `window.URL_PREFIX`.
+Launch the app — the `SOF-viz-COAR` database is created automatically on the first launch:
+
+```console
+python run.py
+```
+
+The app serves on **`http://0.0.0.0:8040`**. By default URLs are **un-prefixed**, so it works as-is
+for local/source runs. When running behind a reverse proxy mounted at a sub-path, set `URL_PREFIX`
+(e.g. `URL_PREFIX=/software`): `run.py` prepends it to every generated URL and exposes it to
+client-side JS as `window.URL_PREFIX`.
+
+## Development
+
+There is no test suite, linter, or build step — `python run.py` is the whole dev loop. For an
+in-depth tour of the architecture (app wiring, the ArangoDB graph model, the ingestion data flow,
+and the Elasticsearch search layer), see [`CLAUDE.md`](CLAUDE.md).
+
+## Acknowledgements
+
+COAR-Viz is a fork of [SOFTware-Viz](https://github.com/Samuel-Scalbert/SOFTware-Viz). Some labels,
+the published Docker image tag, and parts of the upstream documentation still reference the original
+project.
