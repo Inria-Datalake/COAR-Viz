@@ -39,11 +39,16 @@
                                         href="{{ url_prefix }}/software_stat/{{ software }}">data_check</a></button>
                                 <div class="dropdown-content">
                                     <lu class="list_software_doc_id">
-                                        {% for doc in docs[0] %}
+                                        {% for doc in docs[0][:25] %}
                                             <li>
                                                 <a href="{{ url_for('doc_info_wsoftware',doc_id=doc,software=software) }}">{{ doc }}</a>
                                             </li>
                                         {% endfor %}
+                                        {% if docs[0]|length > 25 %}
+                                            <li>
+                                                <a href="{{ url_prefix }}/software_stat/{{ software }}">+{{ docs[0]|length - 25 }} more…</a>
+                                            </li>
+                                        {% endif %}
                                     </lu>
                                 </div>
                             </div>
@@ -65,11 +70,16 @@
                                 </button>
                                 <div class="dropdown-content">
                                     <lu class="list_software_doc_id">
-                                        {% for doc in docs[0] %}
+                                        {% for doc in docs[0][:25] %}
                                             <li>
                                                 <a href="{{ url_for('doc_info_wsoftware',doc_id=doc,software=software) }}">{{ doc }}</a>
                                             </li>
                                         {% endfor %}
+                                        {% if docs[0]|length > 25 %}
+                                            <li>
+                                                <a href="{{ url_prefix }}/software_stat/{{ software }}">+{{ docs[0]|length - 25 }} more…</a>
+                                            </li>
+                                        {% endif %}
                                     </lu>
                                 </div>
                             </div>
@@ -90,11 +100,16 @@
                                         href="{{ url_prefix }}/software_stat/{{ software }}">data_check</a></button>
                                 <div class="dropdown-content">
                                     <lu class="list_software_doc_id">
-                                        {% for doc in docs[0] %}
+                                        {% for doc in docs[0][:25] %}
                                             <li>
                                                 <a href="{{ url_for('doc_info_wsoftware',doc_id=doc,software=software) }}">{{ doc }}</a>
                                             </li>
                                         {% endfor %}
+                                        {% if docs[0]|length > 25 %}
+                                            <li>
+                                                <a href="{{ url_prefix }}/software_stat/{{ software }}">+{{ docs[0]|length - 25 }} more…</a>
+                                            </li>
+                                        {% endif %}
                                     </lu>
                                 </div>
                             </div>
