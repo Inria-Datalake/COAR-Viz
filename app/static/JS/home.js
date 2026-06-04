@@ -151,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ============================================================ */
 
     createChart(
-        "/software/api/notification_count",
+        window.URL_PREFIX + "/api/notification_count",
         "lineChartNotif",
         "Documents received (last 30 days)",
         "Number of Notifications",
@@ -160,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     createChart(
-        "/software/api/mention_count",
+        window.URL_PREFIX + "/api/mention_count",
         "lineChartMention",
         "Mentions received (last 30 days)",
         "Number of Mentions",
@@ -169,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     createChart(
-        "/software/api/accepted_count",
+        window.URL_PREFIX + "/api/accepted_count",
         "lineChartMentionAccepted",
         "Mentions accepted (last 30 days)",
         "Number of Mentions",
@@ -178,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     createChart(
-        "/software/api/rejected_count",
+        window.URL_PREFIX + "/api/rejected_count",
         "lineChartMentionRejected",
         "Mentions rejected (last 30 days)",
         "Number of Mentions",
@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ============================================================ */
 
     createBarChartFromApi(
-        "/software/api/document_failed_count",
+        window.URL_PREFIX + "/api/document_failed_count",
         "barChartErrors",
         "Errors by type",
         "Number of errors"

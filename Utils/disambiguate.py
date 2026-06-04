@@ -35,17 +35,16 @@ def disambiguate_from_software(software, fuzz_threshold:float,avg_threshold:floa
 
     # 3️⃣ Fetch docids for every candidate software
     list_possible_dup_docid = []
+    query = '''
+        FOR s IN softwares
+            FILTER s.software_name.rawForm == @sw
+            FOR e IN edge_doc_to_software
+                FILTER e._to == s._id
+                LET doc = DOCUMENT(e._from)
+                RETURN DISTINCT doc._key
+    '''
     for sw in list_possible_dup:
-        query = f'''
-            FOR s IN softwares
-                FILTER s.software_name.rawForm == "{sw}"
-                FOR e IN edge_doc_to_software
-                    FILTER e._to == s._id
-                    LET doc = DOCUMENT(e._from)
-                    RETURN DISTINCT doc._key
-        '''
-
-        result_docids = list(db.AQLQuery(query, rawResults=True, batchSize=2000))
+        result_docids = list(db.AQLQuery(query, rawResults=True, batchSize=2000, bindVars={"sw": sw}))
 
         for docid in result_docids:
             list_possible_dup_docid.append([sw, docid])
@@ -54,7 +53,7 @@ def disambiguate_from_software(software, fuzz_threshold:float,avg_threshold:floa
 
 def fetch_for_software(softwareName, docid):
     query = f'''
-                LET docId = "documents/{docid}"
+                LET docId = @docId
                 
                 // -----------------------------------
                 // DOCUMENT INFO
@@ -75,7 +74,7 @@ def fetch_for_software(softwareName, docid):
                     FOR edge IN edge_doc_to_software
                         FILTER edge._from == docId
                         LET sw = DOCUMENT(edge._to)
-                        FILTER sw.software_name.normalizedForm == "{softwareName}"
+                        FILTER sw.software_name.normalizedForm == @softwareName
                         RETURN {{
                             name: sw.software_name.rawForm,
                             context: sw.context
@@ -89,7 +88,7 @@ def fetch_for_software(softwareName, docid):
                     FOR edge IN edge_doc_to_software
                         FILTER edge._from == docId
                         LET sw = DOCUMENT(edge._to)
-                        FILTER sw.software_name.normalizedForm == "{softwareName}"
+                        FILTER sw.software_name.normalizedForm == @softwareName
                         FILTER sw.url.rawForm != null && sw.url.rawForm != ""
                         COLLECT urlValue = sw.url.rawForm
                         RETURN urlValue
@@ -104,7 +103,7 @@ def fetch_for_software(softwareName, docid):
                         FILTER edge._from == docId
                         LET sw = DOCUMENT(edge._to)
                         FILTER sw.verification_by_author in [true, false]
-                        FILTER sw.software_name.normalizedForm == "{softwareName}"
+                        FILTER sw.software_name.normalizedForm == @softwareName
                         return distinct sw.verification_by_author
                 )
 
@@ -157,5 +156,6 @@ def fetch_for_software(softwareName, docid):
                     verification: verification_by_author
                 }}
                 '''
-    data_software = db.AQLQuery(query, rawResults=True, batchSize=2000)
+    data_software = db.AQLQuery(query, rawResults=True, batchSize=2000,
+                                bindVars={"docId": f"documents/{docid}", "softwareName": softwareName})
     return data_software[0]

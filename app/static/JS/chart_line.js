@@ -1,5 +1,5 @@
 // Fetch the data for the chart
-fetch(`/software/api/line_chart`, {
+fetch(`${window.URL_PREFIX}/api/line_chart`, {
     method: "GET"
 })
 .then(response => {

@@ -5,3 +5,7 @@ docker.txt
 sandbox/
 .env
 up_viz_docker.sh
+.idea
+__pycache__/
+*.pyc
+CLAUDE.md

@@ -1,14 +1,9 @@
 {% extends "partials/conteneur.html" %}
 {% block body %}
 <main>
-    <div id="title_dash">
-        <div id="title_box">
-            <h1 data-value="DashBoard">SOFTware-Viz</h1>
-        </div>
-    </div>
     <div class="home-container">
         <div class="home-info">
-            <h1>Informations</h1>
+            <h1>Dashboard</h1>
            <div class="canvas">
                 <div class="timeline_container">
                     <div class="time_block">
@@ -23,11 +18,6 @@
                     </div>
                     <div class="time_block">
                         <div class="time_info">
-                            <canvas id="barChartErrors"></canvas>
-                        </div>
-                    </div>
-                    <div class="time_block">
-                        <div class="time_info">
                             <canvas id="lineChartMentionAccepted"></canvas>
                         </div>
                     </div>
@@ -36,137 +26,63 @@
                             <canvas id="lineChartMentionRejected"></canvas>
                         </div>
                     </div>
+                    <div class="time_block time_block--wide">
+                        <div class="time_info">
+                            <canvas id="barChartErrors"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="home-info">
-            <h1>Dataset</h1>
+            <h1>Stats</h1>
             <div class="home-card-box">
                     <div class="home-block">
                         <div class="home-data">
-                          <h2>Documents:         <button class="button-info" title="Xml-tei taken form the PDF for the corpus of scientific publications"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Documents:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['documents_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>Software:         <button class="button-info" title="Softwares identified in the publications with IA processing"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Software:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['distinct_softwares_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>Software mention:         <button class="button-info" title="Softwares mentions identified in the publications with IA processing"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Software mention:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['softwares_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>Authors:         <button class="button-info" title="Authors of the publications processed"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Authors:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['authors_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>Structures:         <button class="button-info" title="Research organisations of the authors"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Affiliations:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['structures_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>References:         <button class="button-info" title="References found in the articles"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>References:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['references_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>GitHub Links:         <button class="button-info" title="Links found by Softcite in the articles"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>GitHub Links:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['distinct_urls_count'] }}</p>
                         </div>
                   </div>
             </div>
         </div>
-        <div class="home-info">
-            <h1>Process</h1>
-            <div class="canvas">
-            <div class="timeline_container">
-
-          <div class="time_block">
-            <div class="time_img">
-              <img src="static/img/database.svg" alt="">
-            </div>
-            <div class="time_info">
-              <h2>DB of PDF</h2>
-              <p class="">The process begins with a Database of PDF files. These PDFs are scholarly PDFs that needs to be extracted and processed.</p>
-            </div>
-          </div>
-
-          <div class="time_block">
-            <div class="time_img">
-              <img src="static/img/docker.svg" alt="">
-            </div>
-            <div class="time_info">
-              <h2>GROBID</h2>
-              <p class="docker">The PDFs are sent to <span class="docker" style="font-weight: bold;">GROBID</span>, a tool used to extract structured data (like bibliographic information) from scholarly PDFs. <span class="docker" style="font-weight: bold;">GROBID</span> processes the PDFs and outputs XML files. This is a crucial step in extracting machine-readable information from the documents.</p>
-            </div>
-          </div>
-
-          <div class="time_block">
-            <div class="time_img">
-              <img src="static/img/docker.svg" alt="">
-            </div>
-            <div class="time_info">
-              <h2><span class="docker" style="font-weight: bold;">SOFTCITE</span></h2>
-              <p class="docker">After <span class="docker" style="font-weight: bold;">GROBID</span>, the extracted data (likely enriched or supplemented data) is passed to <span class="docker" style="font-weight: bold;">SOFTCITE</span>, which generate JSON outputs. <span class="docker" style="font-weight: bold;">SOFTCITE</span> analyze citations, software mentions, or related information in the PDF files like references.</p>
-            </div>
-          </div>
-
-          <div class="time_block">
-            <div class="time_img">
-              <img src="static/img/logo_home.png" alt="">
-            </div>
-            <div class="time_info">
-              <h2><span class="sync" style="font-weight: bold;">SOFTware-Sync</span></h2>
-              <p class="">The extracted data (XML and JSON) is then passed to <span class="sync" style="font-weight: bold;">SOFTware-Sync</span>, which is a tool that synchronizes the data in one single XML.</p>
-            </div>
-          </div>
-
-          <div class="time_block">
-            <div class="time_img">
-              <img src="static/img/viz.png" alt="">
-            </div>
-            <div class="time_info">
-              <h2>SOFTware-Viz</h2>
-              <p class=""><span class="viz" style="font-weight: bold;">SOFTware-Viz</span> is responsible for visualizing the processed data. It likely takes the synchronized data from <span class="sync" style="font-weight: bold;">SOFTware-Sync</span> and transforms it into visual outputs or dashboards.</p>
-            </div>
-          </div>
-
-          <div class="time_block">
-            <div class="time_img">
-              <img src="static/img/arangodb.svg" alt="">
-            </div>
-            <div class="time_info">
-              <h2>ArangoDB</h2>
-              <p class="">The processed data is stored in <span class="arango" style="font-weight: bold;">ArangoDB</span>, a multi-model NoSQL database, to manage both structured data. This database serves as the main storage for the extracted information/mentions.</p>
-            </div>
-          </div>
-
-           <div class="time_block">
-            <div class="time_img">
-              <img src="static/img/flask.svg" alt="">
-            </div>
-            <div class="time_info">
-              <h2>Flask</h2>
-              <p class=""><span class="flask" style="font-weight: bold;">Flask</span> is a web framework used for developing web applications. <span class="flask" style="font-weight: bold;">Flask</span> interacts with both <span class="viz" style="font-weight: bold;">SOFTware-Viz</span> (for visualizations) and <span class="arango" style="font-weight: bold;">ArangoDB</span> (for retrieving data).</p>
-            </div>
-          </div>
-        </div>
-        </div>
-        </div>
-        </div>
     </div>
 </main>
-</div>
 {% endblock %}
 
 {% block scripts %}

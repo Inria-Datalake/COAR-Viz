@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // Ensure div_block is not empty
     if (div_block.length > 0) {
         if (url_info.startsWith('struct-')) {
-            fetch(`/software/api/soft/${url_info}`)
+            fetch(`${window.URL_PREFIX}/api/soft/${url_info}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -36,60 +36,60 @@ document.addEventListener('DOMContentLoaded', (event) => {
         }
     };
 
-    async function setupSoftwareSearch() {
-        try {
-            const response = await fetch(`/software/api/disambiguate/list_software`, { method: "GET" });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const availableSoftwareND = await response.json();
-            console.log(availableSoftwareND);
+    function setupSoftwareSearch() {
+        const resultBox = document.getElementById("result-box-software");
+        const inputBox = document.getElementById("input-box-software");
+        if (!inputBox || !resultBox) return;
 
-            const resultBox = document.getElementById("result-box-software");
-            const inputBox = document.getElementById("input-box-software");
-
-            // Debounce function to delay input handling
-            function debounce(func, wait) {
-                let timeout;
-                return function (...args) {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => func.apply(this, args), wait);
-                };
-            }
-
-            function displayResult(results) {
-                const content = results.map(keyword =>
-                    `<div class='mention_search_doc_id' id="${keyword}">${keyword}</div>`
-                ).join('');
-                resultBox.style.display = results.length ? 'block' : 'none';
-                resultBox.innerHTML = `<div class='dropdown-content-search'>${content}</div>`;
-
-                // Add event listeners for new result items
-                document.querySelectorAll('.mention_search_doc_id').forEach(item => {
-                    item.addEventListener('click', function () {
-                        const idValue = this.getAttribute('id');
-                        handleClick(idValue);
-                        resultBox.style.display = 'none';
-                        resultBox.innerHTML = ""; // Clear results
-                    });
-                });
-            }
-
-            inputBox.onkeyup = debounce(function () {
-                const input = inputBox.value.trim();
-                if (input.length) {
-                    const results = availableSoftwareND.filter(keyword =>
-                        keyword.toLowerCase().includes(input.toLowerCase())
-                    );
-                    displayResult(results);
-                } else {
-                    resultBox.style.display = 'none';
-                    resultBox.innerHTML = "";
-                }
-            }, 300); // Debounce delay of 300ms
-        } catch (error) {
-            console.error('Error fetching software list:', error);
+        // Debounce function to delay input handling
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
         }
+
+        function displayResult(results) {
+            const content = results.map(keyword =>
+                `<div class='mention_search_doc_id' id="${keyword}">${keyword}</div>`
+            ).join('');
+            resultBox.style.display = results.length ? 'block' : 'none';
+            resultBox.innerHTML = `<div class='dropdown-content-search'>${content}</div>`;
+
+            // Add event listeners for new result items
+            document.querySelectorAll('.mention_search_doc_id').forEach(item => {
+                item.addEventListener('click', function () {
+                    const idValue = this.getAttribute('id');
+                    handleClick(idValue);
+                    resultBox.style.display = 'none';
+                    resultBox.innerHTML = ""; // Clear results
+                });
+            });
+        }
+
+        // Query the Elasticsearch-backed prefix endpoint instead of downloading the full
+        // software list (~519 KB) and filtering in the browser.
+        async function searchSoftware(query) {
+            try {
+                const response = await fetch(`${window.URL_PREFIX}/api/search_software?q=${encodeURIComponent(query)}`, { method: "GET" });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const results = await response.json();
+                displayResult(results.map(r => r.name));
+            } catch (error) {
+                console.error('Error searching software:', error);
+            }
+        }
+
+        inputBox.onkeyup = debounce(function () {
+            const input = inputBox.value.trim();
+            if (input.length) {
+                searchSoftware(input);
+            } else {
+                resultBox.style.display = 'none';
+                resultBox.innerHTML = "";
+            }
+        }, 300); // Debounce delay of 300ms
     }
 
     // Call the setup function on page load
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     function handleClick(softwareName) {
     // Navigate to a new URL, passing the software name as part of the path or query string
-    const url = `/software/software_stat/${softwareName}`;
+    const url = `${window.URL_PREFIX}/software_stat/${softwareName}`;
     window.location.href = url;
 }
 

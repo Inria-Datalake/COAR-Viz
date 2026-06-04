@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function displayAuthorDetails(auth_id) {
     try {
-      const response = await fetch(`/software/api/author/${auth_id}`, { method: "GET" });
+      const response = await fetch(`${window.URL_PREFIX}/api/author/${auth_id}`, { method: "GET" });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const auth_info = await response.json();
       console.log(auth_info[0]);
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       let documentsList = '<ul>';
       auth_info[0].author.documents.forEach(dict_doc => {
-        documentsList += `<li class="${dict_doc.role}"><a href="/software/doc/${dict_doc.document_halid}">${dict_doc.document_halid}</a></li>`;
+        documentsList += `<li class="${dict_doc.role}"><a href="${window.URL_PREFIX}/doc/${dict_doc.document_halid}">${dict_doc.document_halid}</a></li>`;
       });
       documentsList += '</ul>';
 
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         software_list += `
           <li>
-            <a href="/software/doc/${soft_list[1]}/${soft_list[0]}">${soft_list[0]}</a>
+            <a href="${window.URL_PREFIX}/doc/${soft_list[1]}/${soft_list[0]}">${soft_list[0]}</a>
             (${soft_list[1]}) ${statusText}
           </li>`;
       });
@@ -103,50 +103,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  try {
-    const response = await fetch(`/software/api/author/list_authors`, { method: "GET" });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const Author_list = await response.json();
+  const resultBox = document.getElementById("result-box-dis");
+  const inputBox = document.getElementById("input-box-dis");
 
-    const resultBox = document.getElementById("result-box-dis");
-    const inputBox = document.getElementById("input-box-dis");
-    const authorBox = document.getElementById("author-box");
-
-    inputBox.onkeyup = function () {
-      let result = [];
-      let input = inputBox.value;
-
-      if (input.length) {
-        result = Author_list.filter(author => author[0].toLowerCase().includes(input.toLowerCase()));
-
-        const content = result.map(author => `<div class='mention_search_auth_id' id="${author[1]}">${author[0]}</div>`).join('');
-
-        resultBox.innerHTML = `<div class='dropdown-content-search'>${content}</div>`;
-        resultBox.style.height = '150px';
-        resultBox.style.overflowY = 'scroll';
-        resultBox.style.display = 'block';
-      } else {
-        resultBox.innerHTML = "";
-        resultBox.style.display = 'none';
-      }
+  // Collapse rapid keystrokes into a single request.
+  function debounce(fn, delay = 200) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
     };
+  }
 
-    resultBox.addEventListener('click', function (event) {
-      if (event.target && event.target.classList.contains('mention_search_auth_id')) {
-        resultBox.style.display = 'none';
-        const auth_id = event.target.id;
-        displayAuthorDetails(auth_id);
-      }
-    });
-
-    // Check URL param and display author details automatically if present
-    const authorId = getQueryParam('author-id');
-    if (authorId) {
-      displayAuthorDetails(authorId);
+  // Query the Elasticsearch-backed prefix endpoint instead of downloading every author
+  // (the full /api/author/list_authors payload is ~9.5 MB over 750k authors).
+  async function searchAuthors(query) {
+    if (!query.length) {
+      resultBox.innerHTML = "";
+      resultBox.style.display = 'none';
+      return;
     }
+    try {
+      const response = await fetch(`${window.URL_PREFIX}/api/search_author?q=${encodeURIComponent(query)}`, { method: "GET" });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const results = await response.json();
 
-  } catch (error) {
-    console.error('Error fetching the author list:', error);
+      const content = results.map(a => {
+        const name = `${a.last_name || ''} ${a.first_name || ''}`.trim();
+        return `<div class='mention_search_auth_id' id="${a.author_id}">${name}</div>`;
+      }).join('');
+
+      resultBox.innerHTML = `<div class='dropdown-content-search'>${content}</div>`;
+      resultBox.style.height = '150px';
+      resultBox.style.overflowY = 'scroll';
+      resultBox.style.display = 'block';
+    } catch (error) {
+      console.error('Error searching authors:', error);
+    }
+  }
+
+  inputBox.onkeyup = debounce(() => searchAuthors(inputBox.value), 200);
+
+  resultBox.addEventListener('click', function (event) {
+    if (event.target && event.target.classList.contains('mention_search_auth_id')) {
+      resultBox.style.display = 'none';
+      const auth_id = event.target.id;
+      displayAuthorDetails(auth_id);
+    }
+  });
+
+  // Check URL param and display author details automatically if present
+  const authorId = getQueryParam('author-id');
+  if (authorId) {
+    displayAuthorDetails(authorId);
   }
 
 });

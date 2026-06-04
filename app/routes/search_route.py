@@ -1,14 +1,43 @@
 from app.app import app, db
 import os
 from flask import render_template, request, jsonify
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, NotFoundError
 from Utils.elastic_search import sync_to_elasticsearch
+
+
+def _es_client():
+    """Build an Elasticsearch client from the ELASTIC_HOST/ELASTIC_PORT env vars."""
+    elastic_host = os.getenv('ELASTIC_HOST')
+    elastic_port = os.getenv('ELASTIC_PORT')
+    return Elasticsearch(hosts=[f"http://{elastic_host}:{elastic_port}"], request_timeout=60)
+
+
+def _es_search(es, index, body, size):
+    """Run an ES search and return the raw list of hits.
+
+    A missing index — the normal state on a fresh deploy, or after Elasticsearch was
+    reset, before the first ``/elastic_update`` — yields ``[]`` instead of bubbling up
+    as a 500. For an autocomplete box that just means "no matches yet". The condition
+    is logged so an operator knows to (re)build the indices via ``/elastic_update``.
+    """
+    try:
+        response = es.search(index=index, body=body, size=size)
+        return response["hits"]["hits"]
+    except NotFoundError:
+        app.logger.warning(
+            "Elasticsearch index '%s' not found — returning empty results. "
+            "Run /elastic_update to (re)build the indices from ArangoDB.", index)
+        return []
+
 
 # Trigger Elasticsearch sync manually
 @app.route('/elastic_update')
 def elastic_update():
-    sync_to_elasticsearch(db)
-    return "Elastic executed manually!"
+    report = sync_to_elasticsearch(db)
+    # Surface the per-index report so a partial/failed rebuild is visible instead of
+    # silently claiming success. HTTP 500 if any index failed to build.
+    failed = any("error" in entry for entry in report)
+    return jsonify({"status": "error" if failed else "ok", "indices": report}), (500 if failed else 200)
 
 @app.route('/search')
 def search_html():
@@ -16,10 +45,7 @@ def search_html():
 
 @app.route('/api/search_software')
 def search():
-    elastic_host = os.getenv('ELASTIC_HOST')
-    elastic_port = os.getenv('ELASTIC_PORT')
-
-    es = Elasticsearch(hosts=[f"http://{elastic_host}:{elastic_port}"], request_timeout=60)
+    es = _es_client()
     query_str = request.args.get("q")
     if not query_str:
         return jsonify({"error": "Missing 'q' query parameter"}), 400
@@ -34,18 +60,15 @@ def search():
         }
     }
 
-    response = es.search(index="softwares", body=query, size=100)
-    results = [hit["_source"] for hit in response["hits"]["hits"]]
+    hits = _es_search(es, "softwares", query, size=100)
+    results = [hit["_source"] for hit in hits]
 
     return jsonify(results)
 
 
 @app.route('/api/search_document')
 def search_document():
-    elastic_host = os.getenv('ELASTIC_HOST')
-    elastic_port = os.getenv('ELASTIC_PORT')
-
-    es = Elasticsearch(hosts=[f"http://{elastic_host}:{elastic_port}"], request_timeout=60)
+    es = _es_client()
     query_str = request.args.get("q")
     if not query_str:
         return jsonify({"error": "Missing 'q' query parameter"}), 400
@@ -58,17 +81,14 @@ def search_document():
         }
     }
 
-    response = es.search(index="titles", body=query, size=100)
-    results = [hit["_source"] for hit in response["hits"]["hits"]]
+    hits = _es_search(es, "titles", query, size=100)
+    results = [hit["_source"] for hit in hits]
 
     return jsonify(results)
 
 @app.route('/api/search_author')
 def search_author():
-    elastic_host = os.getenv('ELASTIC_HOST')
-    elastic_port = os.getenv('ELASTIC_PORT')
-
-    es = Elasticsearch(hosts=[f"http://{elastic_host}:{elastic_port}"], request_timeout=60)
+    es = _es_client()
     query_str = request.args.get("q")
     if not query_str:
         return jsonify({"error": "Missing 'q' query parameter"}), 400
@@ -86,23 +106,20 @@ def search_author():
         }
     }
 
-    response = es.search(index="authors", body=query, size=100)
+    hits = _es_search(es, "authors", query, size=100)
     results = [
         {
             "first_name": hit["_source"]["first_name"],
             "last_name": hit["_source"]["last_name"],
             "author_id": hit["_source"].get("author_id")
         }
-        for hit in response["hits"]["hits"]
+        for hit in hits
     ]
     return jsonify(results)
 
 @app.route('/api/search_structure')
 def search_structures():
-    elastic_host = os.getenv('ELASTIC_HOST')
-    elastic_port = os.getenv('ELASTIC_PORT')
-
-    es = Elasticsearch(hosts=[f"http://{elastic_host}:{elastic_port}"], request_timeout=60)
+    es = _es_client()
     query_str = request.args.get("q", "").lower().strip()
     if not query_str:
         return jsonify({"error": "Missing 'q' query parameter"}), 400
@@ -133,12 +150,12 @@ def search_structures():
         }
     }
 
-    response = es.search(index="structures", body=query, size=100)
+    hits = _es_search(es, "structures", query, size=100)
 
     # Deduplicate by structure_id
     seen_ids = set()
     results = []
-    for hit in response["hits"]["hits"]:
+    for hit in hits:
         source = hit["_source"]
         structure_id = source.get("structure_id")
         if structure_id and structure_id not in seen_ids:
@@ -153,10 +170,7 @@ def search_structures():
 
 @app.route('/api/search_url')
 def search_url():
-    elastic_host = os.getenv('ELASTIC_HOST')
-    elastic_port = os.getenv('ELASTIC_PORT')
-
-    es = Elasticsearch(hosts=[f"http://{elastic_host}:{elastic_port}"], request_timeout=60)
+    es = _es_client()
     query_str = request.args.get("q", "").lower().strip()
     if not query_str:
         return jsonify([])
@@ -175,18 +189,14 @@ def search_url():
         }
     }
 
-    response = es.search(index="urls", body=query, size=50)
+    hits = _es_search(es, "urls", query, size=50)
 
     results = [
         {
             "doc_id": hit["_source"]["doc_id"],
             "url": hit["_source"].get("url_exact", hit["_source"].get("url"))
         }
-        for hit in response["hits"]["hits"]
+        for hit in hits
     ]
 
     return jsonify(results)
-
-
-
-

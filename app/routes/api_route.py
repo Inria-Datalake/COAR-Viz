@@ -30,55 +30,38 @@ def list_software_for_software_page():
 # API endpoint to retrieve line chart data for software mentions over the years
 @app.route('/api/line_chart')
 def line_chart_data():
-    # Define the years for which data will be retrieved
+    # Years shown on the chart (chart_line.js hardcodes the same labels).
     years = ["2019", "2020", "2021", "2022", "2023"]
-    # Initialize a results dictionary with zero counts for each year
-    results = {year: {"used": 0, "created": 0, "shared": 0} for year in years}
-    # Initialize empty lists to store the counts for used, created, and shared mentions
-    dataset_used = []
-    dataset_shared = []
-    dataset_created = []
 
-    # Iterate over each year and run a query to retrieve counts of different attributes
-    for year in years:
-        query = f'''
-                LET attributeCounts = (
-                    FOR edge IN edge_doc_to_software
-                        LET document_id = document(edge._from)
-                        FILTER document_id.date == "{year}"
-                        LET software_mention = document(edge._to)
-                        LET usedScore = software_mention.mentionContextAttributes.used.score
-                        LET createdScore = software_mention.mentionContextAttributes.created.score
-                        LET sharedScore = software_mention.mentionContextAttributes.shared.score
-                        LET maxScore = max([usedScore, createdScore, sharedScore])
-                        FOR attr IN ['used', 'created', 'shared']
-                            LET score = software_mention.mentionContextAttributes[attr].score
-                            FILTER score == maxScore
-                            COLLECT attribute = attr WITH COUNT INTO count
-                            RETURN {{
-                                'attribute': attribute,
-                                count: count
-                            }}
-                )
+    # Single pass over edge_doc_to_software grouped by (year, dominant attribute),
+    # instead of one full edge-collection scan per year (previously 5 scans). The
+    # dominant attribute is the highest of used/created/shared, ties resolving
+    # used > created > shared — matching Utils/dashboard.py's _AGG_TAIL.
+    query = '''
+        FOR edge IN edge_doc_to_software
+            LET doc = DOCUMENT(edge._from)
+            FILTER doc.date IN @years
+            LET a = DOCUMENT(edge._to).mentionContextAttributes
+            FILTER a != null
+            LET maxScore = MAX([a.used.score, a.created.score, a.shared.score])
+            FILTER maxScore != null
+            LET dom = a.used.score == maxScore ? "used"
+                    : (a.created.score == maxScore ? "created" : "shared")
+            COLLECT year = doc.date, attr = dom WITH COUNT INTO count
+            RETURN { year: year, attr: attr, count: count }
+    '''
+    rows = db.AQLQuery(query, bindVars={'years': years}, rawResults=True, batchSize=1000)
 
-                RETURN attributeCounts
-                '''
-        # Execute the query and store the results
-        response = db.AQLQuery(query, rawResults=True)
-        try:
-            dataset_used.append(response[0][0]['count'])
-        except IndexError:
-            dataset_used.append("0")
-        try:
-            dataset_shared.append(response[0][1]['count'])
-        except IndexError:
-            dataset_shared.append("0")
-        try:
-            dataset_created.append(response[0][2]['count'])
-        except IndexError:
-            dataset_created.append("0")
-    # Return the datasets as a list
-    return [dataset_used, dataset_shared, dataset_created]
+    counts = {year: {"used": 0, "created": 0, "shared": 0} for year in years}
+    for row in rows:
+        counts[row['year']][row['attr']] = row['count']
+
+    # Preserve the exact array contract chart_line.js consumes: [created, shared, used]
+    # (it reads createdData = data[0], sharedData = data[1], usedData = data[2]).
+    dataset_created = [counts[year]["created"] for year in years]
+    dataset_shared = [counts[year]["shared"] for year in years]
+    dataset_used = [counts[year]["used"] for year in years]
+    return jsonify([dataset_created, dataset_shared, dataset_used])
 
 # API endpoint to retrieve line chart data for a specific structure over the years
 @app.route('/api/line_chart/<struct>')
@@ -305,109 +288,44 @@ def str_from_halid(struc_id):
     data = db.AQLQuery(query, rawResults=True, batchSize=1)
     return (list(data))
 
+def _daily_counts(collection):
+    """Last-30-days counts (oldest → newest) for a daily counter collection.
+
+    One query instead of 30: fetch every matching day-row at once and map it back onto the
+    day list, filling None where a day has no row (preserving the chart's expected shape).
+    `collection` is a trusted hard-coded constant — never user input — so interpolating it
+    is safe; the actual data (`days`) is passed via bindVars.
+    """
+    today = date.today()
+    last_30_days = list(reversed(
+        [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
+    ))  # oldest → newest
+
+    query = f'''
+    FOR nb IN {collection}
+        FILTER nb.date IN @days
+        RETURN {{ date: nb.date, count: nb.count }}
+    '''
+    rows = db.AQLQuery(query, rawResults=True, bindVars={"days": last_30_days})
+    by_date = {row["date"]: row["count"] for row in rows}
+    return [by_date.get(day) for day in last_30_days]
+
+
 @app.route("/api/notification_count")
 def notification_count():
-    list_nb_of_notif = []
-
-    today = date.today()
-    last_30_days = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
-    last_30_days = list(reversed(last_30_days))  # oldest → newest
-
-    for day in last_30_days:
-        query = f'''
-        FOR nb IN notifications
-            FILTER nb.date == "{day}"
-            RETURN nb.count
-        '''
-        data = db.AQLQuery(query, rawResults=True, batchSize=1)
-
-        if len(data) == 0:
-            count = None
-        else:
-            count = data[0]
-
-        list_nb_of_notif.append(count)
-
-    # Return JSON with NaN allowed
-    return Response(json.dumps(list_nb_of_notif, allow_nan=True), mimetype="application/json")
+    return Response(json.dumps(_daily_counts("notifications"), allow_nan=True), mimetype="application/json")
 
 @app.route("/api/mention_count")
 def mention_count():
-    list_nb_of_notif = []
-
-    today = date.today()
-    last_30_days = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
-    last_30_days = list(reversed(last_30_days))  # oldest → newest
-
-    for day in last_30_days:
-        query = f'''
-        FOR nb IN mentions
-            FILTER nb.date == "{day}"
-            RETURN nb.count
-        '''
-        data = db.AQLQuery(query, rawResults=True, batchSize=1)
-
-        if len(data) == 0:
-            count = None
-        else:
-            count = data[0]
-
-        list_nb_of_notif.append(count)
-
-    # Return JSON with NaN allowed
-    return Response(json.dumps(list_nb_of_notif, allow_nan=True), mimetype="application/json")
+    return Response(json.dumps(_daily_counts("mentions"), allow_nan=True), mimetype="application/json")
 
 @app.route("/api/accepted_count")
 def accepted_count():
-    list_nb_of_notif = []
-
-    today = date.today()
-    last_30_days = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
-    last_30_days = list(reversed(last_30_days))  # oldest → newest
-
-    for day in last_30_days:
-        query = f'''
-        FOR nb IN accepted
-            FILTER nb.date == "{day}"
-            RETURN nb.count
-        '''
-        data = db.AQLQuery(query, rawResults=True, batchSize=1)
-
-        if len(data) == 0:
-            count = None
-        else:
-            count = data[0]
-
-        list_nb_of_notif.append(count)
-
-    # Return JSON with NaN allowed
-    return Response(json.dumps(list_nb_of_notif, allow_nan=True), mimetype="application/json")
+    return Response(json.dumps(_daily_counts("accepted"), allow_nan=True), mimetype="application/json")
 
 @app.route("/api/rejected_count")
 def rejected_count():
-    list_nb_of_notif = []
-
-    today = date.today()
-    last_30_days = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
-    last_30_days = list(reversed(last_30_days))  # oldest → newest
-
-    for day in last_30_days:
-        query = f'''
-        FOR nb IN rejected
-            FILTER nb.date == "{day}"
-            RETURN nb.count
-        '''
-        data = db.AQLQuery(query, rawResults=True, batchSize=1)
-
-        if len(data) == 0:
-            count = None
-        else:
-            count = data[0]
-
-        list_nb_of_notif.append(count)
-
-    # Return JSON with NaN allowed
-    return Response(json.dumps(list_nb_of_notif, allow_nan=True), mimetype="application/json")
+    return Response(json.dumps(_daily_counts("rejected"), allow_nan=True), mimetype="application/json")
 
 @app.route("/api/accepted_notification/<hal_id>/<software_name>", methods=["POST"])
 def accepted_notification(hal_id, software_name):

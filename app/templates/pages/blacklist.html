@@ -155,7 +155,7 @@ document.getElementById("add-blacklist").addEventListener("click", async functio
     appendLog(`Adding "${softwareName}" to blacklist...`);
 
     try {
-        const response = await fetch(`/software/add_to_blacklist/${encodeURIComponent(softwareName)}`);
+        const response = await fetch(`${window.URL_PREFIX}/add_to_blacklist/${encodeURIComponent(softwareName)}`);
         const result = await response.json();
 
         appendLog(result.message);
@@ -192,7 +192,7 @@ document.getElementById("remove-blacklist").addEventListener("click", async func
 
     try {
         const response = await fetch(
-            `/software/remove_from_blacklist/${encodeURIComponent(softwareName)}`,
+            `${window.URL_PREFIX}/remove_from_blacklist/${encodeURIComponent(softwareName)}`,
             { method: "DELETE" }
         );
 

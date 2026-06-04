@@ -114,7 +114,9 @@ body{
 }
 
 .table_source{
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
     width: 70%;
     margin-left: auto;
     margin-right: auto;
@@ -127,17 +129,15 @@ body{
 
 .sourceContainer, .structureContainer, .structureContainer_chart, .authorContainer {
     font-family: "Poppins", sans-serif;
-    font-size: 0.9rem;
     height: fit-content;
     border: 1px solid #c8cad0;
     box-shadow: 0 3px 4px #00000029;
     border-radius: 10px;
     background-color: #f7f7f7;
-    margin-bottom: 5px;
-    width:50%;
+    width: auto;          /* grid cell controls width; was 50% + margin → overflow */
     font-size: 1rem;
     padding: 15px;
-    margin: 20px;
+    margin: 0;
 }
 
 .canva_container{
@@ -411,7 +411,7 @@ main .analyse{ /* Style Grid du block Main */
     font-size: 1.2rem;
     justify-items: center;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr; /* single full-width track so the search bar spans the whole page */
     gap: 1.6rem;
     align-items: start;
 }
@@ -606,21 +606,135 @@ main .analyse{ /* Style Grid du block Main */
 	margin: 10px;
 }
 
-/* Main container for the three-column layout */
+/* Main container for the comparison layout */
 #card-box-disambiguate {
   padding: 20px;
 }
 
-.software-card-dis {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+/* Two-pane layout: pinned Original on the left, candidate list on the right */
+.dis-layout {
+  display: flex;
   gap: 20px;
-  align-items: start;
-  margin-bottom: 20px;
+  align-items: flex-start;
 }
 
-/* Individual column styling */
-.original-software,
+.dis-original {
+  position: sticky;
+  top: 20px;
+  flex: 0 0 360px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.dis-original-label {
+  font-weight: 700;
+  color: #555;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.dis-candidate-list {
+  flex: 1;
+  min-width: 0;            /* allow children to shrink instead of overflowing */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* One collapsible card per candidate */
+.dis-candidate {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.dis-candidate-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 15px;
+  background: #fafafa;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: background 0.2s ease;
+}
+
+.dis-candidate-header:hover {
+  background: #eef3ff;
+}
+
+.dis-cand-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 700;
+  color: #222;
+}
+
+.dis-score {
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: #007bff;
+  color: #fff;
+  border-radius: 12px;
+  padding: 2px 10px;
+}
+
+.dis-metric {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dis-chevron {
+  color: #888;
+  transition: transform 0.2s ease;
+}
+
+.dis-candidate.open .dis-chevron {
+  transform: rotate(180deg);
+}
+
+.dis-candidate-body {
+  display: none;
+  padding: 15px;
+}
+
+.dis-candidate.open .dis-candidate-body {
+  display: block;
+}
+
+.dis-candidate-body .comparison-box {
+  margin-bottom: 15px;
+}
+
+.dis-candidate-body h4 {
+  margin: 12px 0 5px;
+  font-size: 0.95rem;
+  color: #444;
+}
+
+/* Stack the two panes on narrow viewports */
+@media (max-width: 900px) {
+  .dis-layout {
+    flex-direction: column;
+  }
+  .dis-original {
+    position: static;
+    flex-basis: auto;
+    width: 100%;
+    max-height: none;
+  }
+}
+
+/* Card styling shared by the related/result panels */
 .result-software,
 .related-software {
   background: white;
@@ -919,59 +1033,6 @@ input#input-box-dis{
     color: #b30000;     /* red */
 }
 
-.cmp-toggle {
-    margin-top: 15px;
-    width: 100%;
-    padding: 8px 10px;
-    border: none;
-    border-radius: 6px;
-    background: #e6e6e6;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s ease;
-}
-
-.cmp-toggle:hover {
-    background: #d4d4d4;
-}
-
-.cmp-details {
-    margin-top: 15px;
-    display: none;
-    padding-top: 10px;
-    border-top: 1px solid #ddd;
-}
-
-.cmp-details.open {
-    display: block;
-}
-
-.cmp-details h4 {
-    margin: 15px 0 5px;
-    font-size: 1rem;
-    color: #444;
-}
-
-.cmp-details ul {
-    list-style: none;
-    padding-left: 0;
-    margin: 0 0 10px 0;
-}
-
-.cmp-details ul li {
-    padding: 4px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.cmp-details ul li:last-child {
-    border-bottom: none;
-}
-
-.cmp-details li.empty {
-    font-style: italic;
-    color: #aaa;
-}
-
 .name-diff {
     color: #c62828;
     font-weight: bold;
@@ -1029,9 +1090,9 @@ input#input-box-dis{
 /* ==================================== HOME ===================================== */
 /* =============================================================================== */
 
-.home-container{ /* Style Grid du block Main */
+.home-container{ /* Style Grid du block Main : charts 2/3, dataset 1/3 */
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 2fr 1fr;
     gap: 1.6rem;
     align-items: start;
 }
@@ -1041,8 +1102,8 @@ input#input-box-dis{
     padding: 20px;
     margin: 20px 0 0 0;
     width: 100%;
-    height: 85vh;
-    overflow: auto;
+    height: calc(100vh - 48px); /* fill viewport minus top margins so the page body itself doesn't scroll */
+    overflow: auto;            /* the only scroll context for the panel */
     position: relative;
     font-family: 'Poppins', sans-serif;
     border: 2px solid transparent;
@@ -1118,16 +1179,23 @@ input#input-box-dis{
 .home-data h2{
     align-items: flex-end;
     display: flex;
-    font-size: 1.2rem;
+    font-size: 0.95rem; /* slightly smaller: Dataset column is now 1/3 width */
+}
+
+.numbers_home{
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 2px 0 0 0;
 }
 
 .home-card-box{
     padding-top: 10px;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.6rem;
-    overflow: auto;
+    gap: 1rem;
     justify-content: center;
+    /* no overflow here: the parent .home-info is the single scroll container
+       (a scrollbar here too produced the annoying nested "double scroll") */
 }
 
 .home-block .button-info {
@@ -1169,19 +1237,22 @@ input#input-box-dis{
 }
 
 .timeline_container {
-    display: flex; /* Enable flexbox layout */
-    flex-direction: column;
+    display: grid; /* Two-column layout for the diagrams */
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
     padding-top: 10px;
     padding-bottom: 10px;
-    align-items: center; /* Center child items vertically */
+    align-items: start; /* Top-align blocks of differing height */
     position: relative; /* Allow absolute positioning of children */
-    height: 100vh; /* Full viewport height */
 }
 
 .timeline_container .time_block {
-    max-width: 600px; /* Optional: set a max width */
     height: auto; /* Adjust height based on content */
-    min-width: -webkit-fill-available;
+    min-width: 0; /* Allow the chart canvas to shrink to its grid column */
+}
+
+.timeline_container .time_block--wide {
+    grid-column: 1 / -1; /* error chart sits full-width at the bottom of the grid */
 }
 
 .timeline_container .time_block.active {
@@ -1243,27 +1314,26 @@ input#input-box-dis{
 /* =============================================================================== */
 
 .doc_container{
-     display: flex;
-    justify-content: space-between; /* Space out the columns */
-    gap: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin: 2rem 0;
+    align-items: stretch;
 }
 
 .doc_abstract, .doc_affi, .doc_author,.doc_soft,.doc_stat{
+    position: relative;            /* anchor the absolutely-positioned info button */
     border: 2px solid transparent;
     box-shadow: 0 3px 4px #00000029;
     font-family: "Poppins", sans-serif;
     font-size: 1rem;
-    height: fit-content;
-    min-height: 440px;
-    max-height: 400px;
+    min-height: 300px;
     border-radius: 10px;
     background-color: #ffffff;
     margin-bottom: 5px;
     padding: 1rem;
     display: flex;
     flex-direction: column;
-    width: -webkit-fill-available;
-
 }
 .doc_stat:first-child h1{
     text-align: center;
@@ -1299,7 +1369,7 @@ input#input-box-dis{
 
 .top_ul{
     margin-left: 15px;
-    max-height: max-content;
+    max-height: 220px;        /* cap long lists so cards stay uniform; scroll past it */
     overflow-y: auto;
     padding: 0;
     list-style-type: none;
@@ -1320,6 +1390,102 @@ input#input-box-dis{
 
 .software_document_card .titre-block:first-child  {
     background: none;
+}
+
+/* =============================================================================== */
+/* ============================ DOCUMENT VIEW (reading) ========================== */
+/* =============================================================================== */
+/* Reading layout for /doc/<id> and /doc/<id>/<software>: a fixed meta rail on the
+   left (authors, affiliations, softwares, links, legend) and an elastic abstract
+   column on the right; the used/created/shared context lists span full width below.
+   Scoped under .doc-view so it cannot affect the shared .info_doc / .contexts
+   styling used by software_mentions.html. */
+
+.doc-view {
+    margin: 2rem;
+}
+
+.doc-view__title {
+    margin: 0 0 1.5rem;
+}
+
+.doc-view__body {
+    display: grid;
+    grid-template-columns: minmax(260px, 340px) 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.doc-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+.doc-main {
+    min-width: 0;
+}
+
+.doc-card {
+    box-sizing: border-box;
+    border: 2px solid transparent;
+    box-shadow: 0 3px 4px #00000029;
+    font-family: "Poppins", sans-serif;
+    font-size: 1rem;
+    border-radius: 10px;
+    background-color: #ffffff;
+    padding: 1rem 1.25rem;
+    height: fit-content;
+}
+
+.doc-card:hover {
+    background:
+        linear-gradient(var(--widget-background) 0 0) padding-box,
+        linear-gradient(to left, #b3679c, #42a7e4) border-box;
+    border: 2px solid transparent;
+}
+
+.doc-card h1 {
+    font-size: 1.25rem;
+    margin: 0 0 0.75rem;
+}
+
+.doc-card h4 {
+    margin: 0.75rem 0 0.25rem;
+}
+
+.doc-card .top_ul {
+    margin-left: 0;
+}
+
+.doc-card .top_ul li {
+    word-break: break-word;
+}
+
+.doc-card--abstract p {
+    line-height: 1.65;
+    margin: 0;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.doc-legend p {
+    margin: 0.25rem 0;
+}
+
+.doc-contexts {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+/* Stack the rail above the abstract on narrow viewports. */
+@media (max-width: 900px) {
+    .doc-view__body {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* =============================================================================== */

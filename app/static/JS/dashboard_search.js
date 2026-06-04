@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const specificStructId = isSpecificStructure ? currentPath.split('/').pop() : null; // Extract structure ID if it exists
 
     // Fetch the list of institution types from the API
-    fetch(`/software/api/list_type_institution`)
+    fetch(`${window.URL_PREFIX}/api/list_type_institution`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -48,8 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Depending on the URL, fetch either all structures or the specific structure
             const contentPromises = sortedData.map(type_institution => {
                 const url = isSpecificStructure
-                    ? `/software/api/list_institution/${type_institution}/${specificStructId}`
-                    : `/software/api/list_institution/${type_institution}`;
+                    ? `${window.URL_PREFIX}/api/list_institution/${type_institution}/${specificStructId}`
+                    : `${window.URL_PREFIX}/api/list_institution/${type_institution}`;
 
                 return fetch(url)
                     .then(response => {
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const listStructure = data_insti.map(insti =>
                            `<div class="structure" ref="${insti.ref}" acro="${insti.acronym ? `${insti.acronym}` : ''}">
                                 <div class="monitor-icon">
-                                    <a href="/software/dashboard/${insti.ref}">
+                                    <a href="${window.URL_PREFIX}/dashboard/${insti.ref}">
                                         <span class="material-symbols-outlined">monitoring</span>
                                     </a>
                                 </div>
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Promise.all(contentPromises).then(contents => {
                 // Filter out empty strings from the contents
                 const filteredContents = contents.filter(content => content !== '');
-                searchDiv.innerHTML = '<h1>Structures</h1>' + filteredContents.join('');
+                searchDiv.innerHTML = '<h1>Affiliations</h1>' + filteredContents.join('');
 
                 // Set up event listeners for the toggle titles
                 const titles = document.querySelectorAll('.toggle-title');
@@ -157,7 +157,7 @@ function setupStructureClickEvents() {
 
             // Fetch data for the clicked item
             const ref = item.getAttribute('ref');
-            fetch(`/software/api/id_struc/${ref}`)
+            fetch(`${window.URL_PREFIX}/api/id_struc/${ref}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -167,7 +167,7 @@ function setupStructureClickEvents() {
                 .then(data => {
                     // Process the fetched data
                     if (data.length == 0) {
-                        alert("No software for this structure\n" +
+                        alert("No software for this affiliation\n" +
                             "If you have a better idea on how to display this message feel free to open an issue")
                     }
                     else {
