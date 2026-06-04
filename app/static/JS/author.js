@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function displayAuthorDetails(auth_id) {
     try {
-      const response = await fetch(`/software/api/author/${auth_id}`, { method: "GET" });
+      const response = await fetch(`${window.URL_PREFIX}/api/author/${auth_id}`, { method: "GET" });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const auth_info = await response.json();
       console.log(auth_info[0]);
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       let documentsList = '<ul>';
       auth_info[0].author.documents.forEach(dict_doc => {
-        documentsList += `<li class="${dict_doc.role}"><a href="/software/doc/${dict_doc.document_halid}">${dict_doc.document_halid}</a></li>`;
+        documentsList += `<li class="${dict_doc.role}"><a href="${window.URL_PREFIX}/doc/${dict_doc.document_halid}">${dict_doc.document_halid}</a></li>`;
       });
       documentsList += '</ul>';
 
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         software_list += `
           <li>
-            <a href="/software/doc/${soft_list[1]}/${soft_list[0]}">${soft_list[0]}</a>
+            <a href="${window.URL_PREFIX}/doc/${soft_list[1]}/${soft_list[0]}">${soft_list[0]}</a>
             (${soft_list[1]}) ${statusText}
           </li>`;
       });
@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     try {
-      const response = await fetch(`/software/api/search_author?q=${encodeURIComponent(query)}`, { method: "GET" });
+      const response = await fetch(`${window.URL_PREFIX}/api/search_author?q=${encodeURIComponent(query)}`, { method: "GET" });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const results = await response.json();
 

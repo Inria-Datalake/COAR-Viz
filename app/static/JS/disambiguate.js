@@ -37,7 +37,7 @@ async function apiGET(url) {
 
 async function fetchSoftwareList() {
     try {
-        state.availableSoftware = await apiGET(`/software/api/disambiguate/list_software_search`);
+        state.availableSoftware = await apiGET(`${window.URL_PREFIX}/api/disambiguate/list_software_search`);
     } catch (err) {
         console.error("Error fetching software list:", err);
     }
@@ -45,7 +45,7 @@ async function fetchSoftwareList() {
 
 async function fetchSoftwareJSON(name, docid) {
     try {
-        return await apiGET(`/software/api/disambiguate/fetch_data/${name}/${docid}`);
+        return await apiGET(`${window.URL_PREFIX}/api/disambiguate/fetch_data/${name}/${docid}`);
     } catch (err) {
         console.error(`Error fetching data for ${name}`, err);
         return null;
@@ -110,7 +110,7 @@ function renderJSON(obj,sw,docid) {
                 
                 ${verification_status}
                 
-                <p><strong>HAL ID:</strong> <a href="/software/doc/${doc.file_hal_id}">${doc.file_hal_id}</a></p>
+                <p><strong>HAL ID:</strong> <a href="${window.URL_PREFIX}/doc/${doc.file_hal_id}">${doc.file_hal_id}</a></p>
                 <p><strong>Date:</strong> ${doc.date || "N/A"}</p>
                 <p><strong>Software form:</strong> ${sw || "N/A"}</p>
                 ${url && url.length > 0 ? `
@@ -172,7 +172,7 @@ function diffSoftwareNames(ogName, swName) {
 // Make fetch_ratio async and return the result
 async function fetchRatio(target, candidate) {
     try {
-        const result = await apiGET(`/software/api/disambiguate/fetch_ratio/${target}/${candidate}`);
+        const result = await apiGET(`${window.URL_PREFIX}/api/disambiguate/fetch_ratio/${target}/${candidate}`);
         return result;
     } catch (err) {
         console.error("Error fetching ratio:", err);
@@ -451,7 +451,7 @@ async function softwareClickHandler(softwareName) {
         const fuzz = sliders.range1.value;
         const avg = sliders.range2.value;
         const partial = sliders.range3.value;
-        const data = await apiGET(`/software/api/disambiguate/list_dup_software/${softwareName}/${fuzz}/${avg}/${partial}`);
+        const data = await apiGET(`${window.URL_PREFIX}/api/disambiguate/list_dup_software/${softwareName}/${fuzz}/${avg}/${partial}`);
         state.currentList = data.result || [];
 
         if (state.currentList.length === 0) {

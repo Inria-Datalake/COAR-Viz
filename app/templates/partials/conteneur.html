@@ -2,7 +2,8 @@
 <html lang="en" data-lt-installed="true"><link type="text/css" rel="stylesheet" id="dark-mode-custom-link"><link type="text/css" rel="stylesheet" id="dark-mode-general-link"><style lang="en" type="text/css" id="dark-mode-custom-style"></style><style lang="en" type="text/css" id="dark-mode-native-style"></style><style lang="en" type="text/css" id="dark-mode-native-sheet"></style><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <head>
 
-  <link rel="stylesheet" id="styles" href="/software/static/css/styles.css">
+  <link rel="stylesheet" id="styles" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script>window.URL_PREFIX = "{{ url_prefix }}";</script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo_ico_white.jpg') }}">
 

@@ -31,7 +31,7 @@ async function generateBubbleChart(selector) {
 
     async function getChartData(software_hash) {
         try {
-            const response = await fetch(`/software/chart/${software_hash}`);
+            const response = await fetch(`${window.URL_PREFIX}/chart/${software_hash}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -208,7 +208,7 @@ async function showStructures(hal_id_list, software) {
     }
     try {
         // Fetch the list of institution types once
-        const response = await fetch(`/software/api/list_type_institution`);
+        const response = await fetch(`${window.URL_PREFIX}/api/list_type_institution`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -222,7 +222,7 @@ async function showStructures(hal_id_list, software) {
             institutionTypes.forEach(async (type_institution) => {
                 try {
                     // Fetch the list of institutions for the current type and hal_id
-                    const response = await fetch(`/software/api/list_institution/${type_institution}/chart_halid/${hal_id}`);
+                    const response = await fetch(`${window.URL_PREFIX}/api/list_institution/${type_institution}/chart_halid/${hal_id}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -289,7 +289,7 @@ function showAuthors(hal_id_list) {
 
     hal_id_list.forEach(async (hal_id) => {
         try {
-            const response = await fetch(`/software/api/soft_aut/${hal_id}`, {
+            const response = await fetch(`${window.URL_PREFIX}/api/soft_aut/${hal_id}`, {
                 method: "GET"
             });
 
@@ -309,7 +309,7 @@ function showAuthors(hal_id_list) {
 
             // Create the anchor element for hal_id (visually separate but still clickable)
             const halLink = document.createElement('a');
-            halLink.href = `/software/doc/${hal_id}`; // Link to the document
+            halLink.href = `${window.URL_PREFIX}/doc/${hal_id}`; // Link to the document
             halLink.textContent = "(link)"; // Display link text
 
             // Create a toggle button
@@ -364,7 +364,7 @@ function showSources(hal_id_list, software) {
     hal_id_list.forEach(hal_id => {
         const pTag = document.createElement('a');
         pTag.textContent = hal_id;
-        pTag.href = `/software/doc/${hal_id}/${softwareName}`; // Assuming you want the hal_id to link to its corresponding API
+        pTag.href = `${window.URL_PREFIX}/doc/${hal_id}/${softwareName}`; // Assuming you want the hal_id to link to its corresponding API
         pTag.style.display = "block";
         container.appendChild(pTag);
     });

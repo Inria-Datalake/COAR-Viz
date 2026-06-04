@@ -1,5 +1,5 @@
 function updateRecap (item){
-    fetch(`/software/api/line_chart/${item}`, {
+    fetch(`${window.URL_PREFIX}/api/line_chart/${item}`, {
                 method: "GET"
             })
             .then(response => {

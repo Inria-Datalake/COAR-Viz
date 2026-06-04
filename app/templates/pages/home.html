@@ -1,11 +1,6 @@
 {% extends "partials/conteneur.html" %}
 {% block body %}
 <main>
-    <div id="title_dash">
-        <div id="title_box">
-            <h1 data-value="DashBoard">SOFTware-Viz</h1>
-        </div>
-    </div>
     <div class="home-container">
         <div class="home-info">
             <h1>Dashboard</h1>
@@ -23,17 +18,17 @@
                     </div>
                     <div class="time_block">
                         <div class="time_info">
-                            <canvas id="barChartErrors"></canvas>
-                        </div>
-                    </div>
-                    <div class="time_block">
-                        <div class="time_info">
                             <canvas id="lineChartMentionAccepted"></canvas>
                         </div>
                     </div>
                     <div class="time_block">
                         <div class="time_info">
                             <canvas id="lineChartMentionRejected"></canvas>
+                        </div>
+                    </div>
+                    <div class="time_block time_block--wide">
+                        <div class="time_info">
+                            <canvas id="barChartErrors"></canvas>
                         </div>
                     </div>
                 </div>
@@ -44,43 +39,43 @@
             <div class="home-card-box">
                     <div class="home-block">
                         <div class="home-data">
-                          <h2>Documents:         <button class="button-info" title="Xml-tei taken form the PDF for the corpus of scientific publications"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Documents:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['documents_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>Software:         <button class="button-info" title="Softwares identified in the publications with IA processing"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Software:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['distinct_softwares_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>Software mention:         <button class="button-info" title="Softwares mentions identified in the publications with IA processing"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Software mention:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['softwares_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>Authors:         <button class="button-info" title="Authors of the publications processed"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Authors:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['authors_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>Structures:         <button class="button-info" title="Research organisations of the authors"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>Structures:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['structures_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>References:         <button class="button-info" title="References found in the articles"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>References:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['references_count'] }}</p>
                         </div>
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>GitHub Links:         <button class="button-info" title="Links found by Softcite in the articles"><span class="material-symbols-outlined">help</span></button></h2>
+                          <h2>GitHub Links:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['distinct_urls_count'] }}</p>
                         </div>
                   </div>

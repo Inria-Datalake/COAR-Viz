@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // Ensure div_block is not empty
     if (div_block.length > 0) {
         if (url_info.startsWith('struct-')) {
-            fetch(`/software/api/soft/${url_info}`)
+            fetch(`${window.URL_PREFIX}/api/soft/${url_info}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         // software list (~519 KB) and filtering in the browser.
         async function searchSoftware(query) {
             try {
-                const response = await fetch(`/software/api/search_software?q=${encodeURIComponent(query)}`, { method: "GET" });
+                const response = await fetch(`${window.URL_PREFIX}/api/search_software?q=${encodeURIComponent(query)}`, { method: "GET" });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const results = await response.json();
                 displayResult(results.map(r => r.name));
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     function handleClick(softwareName) {
     // Navigate to a new URL, passing the software name as part of the path or query string
-    const url = `/software/software_stat/${softwareName}`;
+    const url = `${window.URL_PREFIX}/software_stat/${softwareName}`;
     window.location.href = url;
 }
 

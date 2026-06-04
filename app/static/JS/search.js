@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   try {
-    const response = await fetch(`/software/api/search_${filter}?q=${encodeURIComponent(query)}`);
+    const response = await fetch(`${window.URL_PREFIX}/api/search_${filter}?q=${encodeURIComponent(query)}`);
     if (!response.ok) throw new Error("Network response was not ok");
     const results = await response.json();
     console.log('ss',filter)
@@ -33,12 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     else if (filter === 'software') {
-      resultsContainer.innerHTML = results.map(r => `<a href="/software/software_stat/${r.name}">${r.name}</a>`).join('');
+      resultsContainer.innerHTML = results.map(r => `<a href="${window.URL_PREFIX}/software_stat/${r.name}">${r.name}</a>`).join('');
     }
 
     else if (filter === 'document') {
       resultsContainer.innerHTML = results.map(r =>
-        `<a href="/software/doc/${r.doc_id}" class="${r.doc_id}">
+        `<a href="${window.URL_PREFIX}/doc/${r.doc_id}" class="${r.doc_id}">
            <div>${r.title}</div>
          </a>`
       ).join('');
@@ -46,19 +46,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     else if (filter === 'author') {
       resultsContainer.innerHTML = results.map(r =>
-        `<a href="/software/author?author-id=${r.author_id}">${r.first_name} ${r.last_name}</a>`
+        `<a href="${window.URL_PREFIX}/author?author-id=${r.author_id}">${r.first_name} ${r.last_name}</a>`
       ).join('');
     }
 
     else if (filter === 'structure') {
       resultsContainer.innerHTML = results.map(r =>
-        `<a href="/software/dashboard/${r.structure_id}">${r.structure}${r.struct_acronym ? ` (${r.struct_acronym})` : ''}</a>`
+        `<a href="${window.URL_PREFIX}/dashboard/${r.structure_id}">${r.structure}${r.struct_acronym ? ` (${r.struct_acronym})` : ''}</a>`
       ).join('');
     }
 
     else if (filter === 'url') {
       resultsContainer.innerHTML = results.map(r =>
-        `<a href="/software/doc/${r.doc_id}" class="${r.doc_id}">
+        `<a href="${window.URL_PREFIX}/doc/${r.doc_id}" class="${r.doc_id}">
            <div>${r.url}</div>
          </a>`
       ).join('');
