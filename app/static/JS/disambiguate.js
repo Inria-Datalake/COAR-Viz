@@ -140,7 +140,7 @@ function renderJSON(obj,sw,docid) {
                     ).join("")}
                 </ul>
 
-                <h4>Structures:</h4>
+                <h4>Affiliations:</h4>
                 <ul>
                     ${structures.map(s =>
                         `<li struc-id="${s.id_haureal}">${s.name}${s.acronym && s.acronym !== "None" ? " ("+s.acronym+")" : ""}</li>`
@@ -333,7 +333,7 @@ async function renderComparison(ogJson, ogName, swJson, swName) {
             </div>
 
             <div class="comparison-row">
-                <span class="label">Structures in common:</span>
+                <span class="label">Affiliations in common:</span>
                 <span class="value ${pctColor(structPct)}">
                     ${commonStruct.length} / ${ogStruct.length} (${structPct}%)
                 </span>
@@ -354,13 +354,13 @@ async function renderComparison(ogJson, ogName, swJson, swName) {
                 <h4>Authors ONLY in Related</h4>
                 <ul>${listToHTML(diffAuthorsSW, swAuthorsById)}</ul>
 
-                <h4>Structures in common</h4>
+                <h4>Affiliations in common</h4>
                 <ul>${listToHTML(commonStruct, ogStructById)}</ul>
 
-                <h4>Structures ONLY in Original</h4>
+                <h4>Affiliations ONLY in Original</h4>
                 <ul>${listToHTML(diffStructOG, ogStructById)}</ul>
 
-                <h4>Structures ONLY in Related</h4>
+                <h4>Affiliations ONLY in Related</h4>
                 <ul>${listToHTML(diffStructSW, swStructById)}</ul>
 
             </div>

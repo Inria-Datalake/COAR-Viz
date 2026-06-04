@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Promise.all(contentPromises).then(contents => {
                 // Filter out empty strings from the contents
                 const filteredContents = contents.filter(content => content !== '');
-                searchDiv.innerHTML = '<h1>Structures</h1>' + filteredContents.join('');
+                searchDiv.innerHTML = '<h1>Affiliations</h1>' + filteredContents.join('');
 
                 // Set up event listeners for the toggle titles
                 const titles = document.querySelectorAll('.toggle-title');
@@ -167,7 +167,7 @@ function setupStructureClickEvents() {
                 .then(data => {
                     // Process the fetched data
                     if (data.length == 0) {
-                        alert("No software for this structure\n" +
+                        alert("No software for this affiliation\n" +
                             "If you have a better idea on how to display this message feel free to open an issue")
                     }
                     else {

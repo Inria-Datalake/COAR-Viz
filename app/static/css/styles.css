@@ -411,7 +411,7 @@ main .analyse{ /* Style Grid du block Main */
     font-size: 1.2rem;
     justify-items: center;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr; /* single full-width track so the search bar spans the whole page */
     gap: 1.6rem;
     align-items: start;
 }

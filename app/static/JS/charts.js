@@ -1,6 +1,7 @@
-import { Chart } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
-
+/* Chart and ChartDataLabels come from CDN <script> tags in
+   partials/conteneur.html. This file is served as a classic script (not an ES
+   module), so `import` statements here throw a SyntaxError that aborts the
+   whole file — leaving generateBubbleChart / generateCircleChart undefined. */
 Chart.register(ChartDataLabels);
 
 document.addEventListener('DOMContentLoaded', async (event) => {reorderSoftwareMentions()})
