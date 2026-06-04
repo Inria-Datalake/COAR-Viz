@@ -1033,59 +1033,6 @@ input#input-box-dis{
     color: #b30000;     /* red */
 }
 
-.cmp-toggle {
-    margin-top: 15px;
-    width: 100%;
-    padding: 8px 10px;
-    border: none;
-    border-radius: 6px;
-    background: #e6e6e6;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background 0.2s ease;
-}
-
-.cmp-toggle:hover {
-    background: #d4d4d4;
-}
-
-.cmp-details {
-    margin-top: 15px;
-    display: none;
-    padding-top: 10px;
-    border-top: 1px solid #ddd;
-}
-
-.cmp-details.open {
-    display: block;
-}
-
-.cmp-details h4 {
-    margin: 15px 0 5px;
-    font-size: 1rem;
-    color: #444;
-}
-
-.cmp-details ul {
-    list-style: none;
-    padding-left: 0;
-    margin: 0 0 10px 0;
-}
-
-.cmp-details ul li {
-    padding: 4px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.cmp-details ul li:last-child {
-    border-bottom: none;
-}
-
-.cmp-details li.empty {
-    font-style: italic;
-    color: #aaa;
-}
-
 .name-diff {
     color: #c62828;
     font-weight: bold;
