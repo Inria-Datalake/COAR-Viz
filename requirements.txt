@@ -19,6 +19,7 @@ openpyxl==3.1.5
 pyArango==2.1.1
 pycparser==2.22
 python-dateutil==2.9.0.post0
+python-dotenv==1.0.1
 pytz==2024.2
 RapidFuzz==3.10.1
 requests==2.32.3

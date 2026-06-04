@@ -78,12 +78,24 @@ is unreachable**.
 >
 > 5. Start an Elasticsearch instance and make sure it is reachable.
 >
-> 6. Set the required environment variables (see below), then launch the app:
+> 6. Configure the environment (see [Configuration](#configuration)), then launch the app:
 > ```console
+> cp .env.example .env   # then edit .env for your setup
 > python run.py
 > ```
 
-### Required environment variables
+### Configuration
+
+The app reads all configuration from environment variables, loaded from a `.env` file via
+[`python-dotenv`](https://pypi.org/project/python-dotenv/) (see `.env.example`). Copy the template
+and adjust it for your setup:
+
+```console
+cp .env.example .env
+```
+
+Real environment variables (e.g. those injected by Docker) take precedence over `.env`, so the same
+image works in containers without a `.env` file.
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
@@ -91,6 +103,8 @@ is unreachable**.
 | `ARANGO_LOGIN` | ArangoDB user | `root` |
 | `ARANGO_PASSWORD` | ArangoDB password | `changeme` |
 | `ELASTIC_HOST`, `ELASTIC_PORT` | Elasticsearch connection | none — must be set |
+
+The database name (`SOF-viz-COAR`) is fixed in code and created automatically on first launch.
 
 ###  Usage
 
