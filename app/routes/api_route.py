@@ -301,6 +301,14 @@ def _daily_counts(collection):
         [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
     ))  # oldest → newest
 
+    # Counter collections are created lazily on their first write (the new
+    # used/created/shared buckets exist only after the first ingest under this
+    # code). Querying a missing collection 500s, which the front-end then fails
+    # to JSON.parse — so treat "no collection yet" as "no data yet" and return
+    # the empty 30-day shape the chart already renders as a flat line.
+    if not db.hasCollection(collection):
+        return [None] * len(last_30_days)
+
     query = f'''
     FOR nb IN {collection}
         FILTER nb.date IN @days
