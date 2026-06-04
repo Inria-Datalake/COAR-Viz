@@ -23,12 +23,16 @@
                 <a href="{{ url_for("home") }}"><img src="{{ url_for('static', filename='img/logo_home.svg') }}" style="width: -webkit-fill-available; width: -moz-available;margin: 20px;"></a>
             </div>
             <div class="sidebar">
-                <a href="{{ url_for("dashboard_route") }}">
+                <a href="{{ url_for("home") }}">
                     <span class="material-symbols-outlined">dashboard</span>
                     <h3>Dashboard</h3>
                 </a>
+                <a href="{{ url_for("dashboard_route") }}">
+                    <span class="material-symbols-outlined">article</span>
+                    <h3>Mentions</h3>
+                </a>
                 <a href="{{url_for("author")}}">
-                    <span class="material-symbols-outlined">search</span>
+                    <span class="material-symbols-outlined">person</span>
                     <h3>Authors</h3>
                 </a>
                 <a href="{{ url_for("disambiguate")}}">
@@ -36,7 +40,7 @@
                     <h3>Disambiguate</h3>
                 </a>
                 <a href="{{ url_for("software_mentions", software=" ") }}">
-                    <span class="material-symbols-outlined">search</span>
+                    <span class="material-symbols-outlined">terminal</span>
                     <h3>Software</h3>
                 </a>
                 <a href="{{ url_for("search_html")}}">

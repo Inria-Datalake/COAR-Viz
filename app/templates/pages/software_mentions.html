@@ -12,7 +12,7 @@
     <div class="canva_container">
         <canvas id='software' style=""></canvas>
     </div>
-    <div id="table_source" class="table_source" style="display: flex;">
+    <div id="table_source" class="table_source">
         <div id="sourceContainer"  class="sourceContainer"></div>
         <div id="structureContainer" class="structureContainer_chart"></div>
         <div id="authorContainer" class="authorContainer"></div>
@@ -21,9 +21,9 @@
 
     <div class="doc_container">
 
-        <div STYLE="width: 300px;" class="doc_stat">
+        <div class="doc_stat">
             <h1>Statistic</h1>
-            <canvas id="canva_software" width="300" height="300"></canvas>
+            <canvas id="canva_software" width="300" height="300" style="max-width: 100%; height: auto;"></canvas>
             <h3>Used mentions : <span style="color: red">{{ data[0]['used'] }}</span></h3>
             <h3>Shared mentions : <span style="color: red">{{ data[0]['shared'] }}</span></h3>
             <h3>Created mentions : <span style="color: red">{{ data[0]['created'] }}</span></h3>
