@@ -1175,19 +1175,18 @@ input#input-box-dis{
 }
 
 .timeline_container {
-    display: flex; /* Enable flexbox layout */
-    flex-direction: column;
+    display: grid; /* Two-column layout for the diagrams */
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
     padding-top: 10px;
     padding-bottom: 10px;
-    align-items: center; /* Center child items vertically */
+    align-items: start; /* Top-align blocks of differing height */
     position: relative; /* Allow absolute positioning of children */
-    height: 100vh; /* Full viewport height */
 }
 
 .timeline_container .time_block {
-    max-width: 600px; /* Optional: set a max width */
     height: auto; /* Adjust height based on content */
-    min-width: -webkit-fill-available;
+    min-width: 0; /* Allow the chart canvas to shrink to its grid column */
 }
 
 .timeline_container .time_block.active {
@@ -1242,58 +1241,6 @@ input#input-box-dis{
     background: linear-gradient(to right, #004b6b, #037baf);
     -webkit-text-fill-color: transparent;
     -webkit-background-clip: text;
-}
-
-/* Process pipeline: full-width horizontal strip of icons below the top row.
-   Stage descriptions live in each icon's title attribute (native hover tooltip). */
-.process-strip{
-    background-color: var(--widget-background);
-    padding: 16px 20px;
-    margin: 1.6rem 0 20px 0;
-    width: 100%;
-    box-shadow: 0 3px 4px #00000029;
-    border: 2px solid transparent;
-    border-radius: 10px;
-    font-family: 'Poppins', sans-serif;
-}
-
-.process-strip h1{
-    text-align: center;
-    font-size: 22px;
-    margin-bottom: 6px;
-}
-
-.process-icons{
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 1.4rem;
-}
-
-.process-step{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: help; /* hint that hovering reveals the stage description */
-}
-
-.process-step img{
-    width: 56px;
-    height: 56px;
-    object-fit: contain;
-    transition: transform 0.15s ease;
-}
-
-.process-step:not(:last-child)::after{
-    content: "\2192"; /* → arrow between stages */
-    margin-left: 1.4rem;
-    color: #42a7e4;
-    font-size: 1.4rem;
-}
-
-.process-step:hover img{
-    transform: scale(1.15);
 }
 
 /* =============================================================================== */

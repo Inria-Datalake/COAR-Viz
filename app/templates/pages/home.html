@@ -8,7 +8,7 @@
     </div>
     <div class="home-container">
         <div class="home-info">
-            <h1>Informations</h1>
+            <h1>Dashboard</h1>
            <div class="canvas">
                 <div class="timeline_container">
                     <div class="time_block">
@@ -40,7 +40,7 @@
             </div>
         </div>
         <div class="home-info">
-            <h1>Dataset</h1>
+            <h1>Stats</h1>
             <div class="home-card-box">
                     <div class="home-block">
                         <div class="home-data">
@@ -84,32 +84,6 @@
                           <p class="numbers_home" style="color:red;">{{ data['distinct_urls_count'] }}</p>
                         </div>
                   </div>
-            </div>
-        </div>
-    </div>
-    <div class="process-strip">
-        <h1>Process</h1>
-        <div class="process-icons">
-            <div class="process-step" title="DB of PDF: scholarly PDFs to be extracted and processed">
-                <img src="static/img/database.svg" alt="DB of PDF">
-            </div>
-            <div class="process-step" title="GROBID: extracts structured TEI XML from the PDFs">
-                <img src="static/img/docker.svg" alt="GROBID">
-            </div>
-            <div class="process-step" title="SOFTCITE: detects software mentions and references as JSON">
-                <img src="static/img/docker.svg" alt="SOFTCITE">
-            </div>
-            <div class="process-step" title="SOFTware-Sync: merges the XML and JSON into one document">
-                <img src="static/img/logo_home.png" alt="SOFTware-Sync">
-            </div>
-            <div class="process-step" title="SOFTware-Viz: visualizes the processed data">
-                <img src="static/img/viz.png" alt="SOFTware-Viz">
-            </div>
-            <div class="process-step" title="ArangoDB: stores the extracted mentions and graph data">
-                <img src="static/img/arangodb.svg" alt="ArangoDB">
-            </div>
-            <div class="process-step" title="Flask: serves the web application">
-                <img src="static/img/flask.svg" alt="Flask">
             </div>
         </div>
     </div>
