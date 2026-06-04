@@ -1,5 +1,5 @@
 from app.app import app, db
-from Utils.db import check_or_create_collection
+from utils.db import check_or_create_collection
 from flask import jsonify, render_template
 import csv
 from pyArango.theExceptions import AQLQueryError

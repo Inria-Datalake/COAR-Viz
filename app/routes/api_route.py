@@ -1,6 +1,6 @@
-from Utils.db import update_nb_rejected, update_nb_accepted
+from utils.db import update_nb_rejected, update_nb_accepted
 from app.app import app, db
-from Utils.author import author_info_from_id
+from utils.author import author_info_from_id
 from flask import jsonify, Response
 from datetime import date, timedelta
 import json
@@ -36,7 +36,7 @@ def line_chart_data():
     # Single pass over edge_doc_to_software grouped by (year, dominant attribute),
     # instead of one full edge-collection scan per year (previously 5 scans). The
     # dominant attribute is the highest of used/created/shared, ties resolving
-    # used > created > shared — matching Utils/dashboard.py's _AGG_TAIL.
+    # used > created > shared — matching utils/dashboard.py's _AGG_TAIL.
     query = '''
         FOR edge IN edge_doc_to_software
             LET doc = DOCUMENT(edge._from)
@@ -301,6 +301,14 @@ def _daily_counts(collection):
         [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(30)]
     ))  # oldest → newest
 
+    # Counter collections are created lazily on their first write (the new
+    # used/created/shared buckets exist only after the first ingest under this
+    # code). Querying a missing collection 500s, which the front-end then fails
+    # to JSON.parse — so treat "no collection yet" as "no data yet" and return
+    # the empty 30-day shape the chart already renders as a flat line.
+    if not db.hasCollection(collection):
+        return [None] * len(last_30_days)
+
     query = f'''
     FOR nb IN {collection}
         FILTER nb.date IN @days
@@ -326,6 +334,18 @@ def accepted_count():
 @app.route("/api/rejected_count")
 def rejected_count():
     return Response(json.dumps(_daily_counts("rejected"), allow_nan=True), mimetype="application/json")
+
+@app.route("/api/used_count")
+def used_count():
+    return Response(json.dumps(_daily_counts("mentions_used"), allow_nan=True), mimetype="application/json")
+
+@app.route("/api/created_count")
+def created_count():
+    return Response(json.dumps(_daily_counts("mentions_created"), allow_nan=True), mimetype="application/json")
+
+@app.route("/api/shared_count")
+def shared_count():
+    return Response(json.dumps(_daily_counts("mentions_shared"), allow_nan=True), mimetype="application/json")
 
 @app.route("/api/accepted_notification/<hal_id>/<software_name>", methods=["POST"])
 def accepted_notification(hal_id, software_name):

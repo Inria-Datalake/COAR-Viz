@@ -1,4 +1,9 @@
+import threading
+import time
+
 from pyArango.theExceptions import AQLQueryError
+
+from utils.db import get_cache_version
 
 
 # Aggregation tail shared by the global and structure-scoped variants: given a software
@@ -13,8 +18,10 @@ _AGG_TAIL = """
     FILTER maxs != null
     LET dom = a.used.score == maxs ? "used"
             : (a.created.score == maxs ? "created" : "shared")
+    LET sw_name = soft.software_name.normalizedForm
+    FILTER sw_name != null AND TRIM(sw_name) != ""
     LET hal = DOCUMENT(e._from).file_hal_id
-    COLLECT attr = dom, name = soft.software_name.normalizedForm INTO hals = hal
+    COLLECT attr = dom, name = sw_name INTO hals = hal
     RETURN { attr: attr, name: name, mentions: LENGTH(hals), hal_ids: UNIQUE(hals) }
 """
 
@@ -30,7 +37,52 @@ _DOCSET = """
 """
 
 
+# ---------------------------------------------------------------------------
+# Result cache. The dashboard aggregation is a full scan of edge_doc_to_software
+# (~1s+ at 190k softwares) whose result is identical for every visitor and only
+# changes when new data is ingested — which here happens about once a day. So we
+# cache the computed payload per worker and validate it against a *shared*
+# ArangoDB version counter (get_cache_version): a successful ingest bumps the
+# counter, every worker sees the change on its next request and recomputes once,
+# then serves from memory the rest of the day. This is gunicorn-safe — the
+# invalidation signal lives in the DB, not in one worker's memory, so a
+# per-process flag's "only the ingesting worker gets cleared" bug can't happen.
+#
+# The backstop age is a defensive refresh in case some mutation that *should*
+# bump the counter (accept/reject, blacklist, disambiguation) doesn't yet — it
+# bounds staleness to an hour even then. Computing outside the lock keeps a ~1s
+# aggregation from serializing other requests; a cold-cache race may compute
+# twice, which is harmless. Only the successful 7-element list is cached.
+# ---------------------------------------------------------------------------
+_CACHE_BACKSTOP_SECONDS = 3600
+_cache = {}  # key -> (version, computed_at, payload)
+_cache_lock = threading.Lock()
+
+
 def dashboard(db, structure):
+    """Return the dashboard payload, served from cache while the data version is
+    unchanged (see ``get_cache_version``) and within the backstop age."""
+    key = structure or "__global__"
+    version = get_cache_version(db)
+    now = time.time()
+
+    with _cache_lock:
+        entry = _cache.get(key)
+        if entry is not None:
+            cached_version, computed_at, payload = entry
+            if cached_version == version and now - computed_at < _CACHE_BACKSTOP_SECONDS:
+                return payload
+
+    result = _compute_dashboard(db, structure)
+
+    if isinstance(result, list):
+        with _cache_lock:
+            _cache[key] = (version, now, result)
+
+    return result
+
+
+def _compute_dashboard(db, structure):
     """Aggregate software-mention characterizations for the dashboard.
 
     Everything is computed server-side in two AQL queries (one grouping, one totals)

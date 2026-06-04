@@ -4,7 +4,11 @@
    whole file — leaving generateBubbleChart / generateCircleChart undefined. */
 Chart.register(ChartDataLabels);
 
-document.addEventListener('DOMContentLoaded', async (event) => {reorderSoftwareMentions()})
+/* NOTE: the dashboard's mention reordering (reorderSoftwareMentions) lives in
+   dashboard_search.js and is invoked from its own DOMContentLoaded handler.
+   charts.js must NOT call it: this file is also loaded by software_mentions.html
+   (the /software_stat page), which does not load dashboard_search.js, so calling
+   it here threw "reorderSoftwareMentions is not defined" and aborted the handler. */
 
 function affi_type(str) {
     const typeMap = {
@@ -79,6 +83,7 @@ async function generateBubbleChart(selector) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,   // let the (bounded) container set the size, not width/2
             scales: {
                 y: {
                     suggestedMin: ydatamin,

@@ -146,6 +146,11 @@ body{
     box-shadow: 0 3px 4px #00000029;
     border-radius: 10px;
     background-color: #f7f7f7;
+    position: relative;       /* anchor for the responsive canvas */
+    height: 60vh;             /* bounded box; chart fills it instead of width/2 */
+    min-height: 360px;
+    max-height: 620px;
+    padding: 10px;
 }
 
 .software_canva_info .titre-block{
@@ -187,9 +192,14 @@ body{
 /* ======================= FONT ======================= */
 
 
+h1{
+    font-weight: 600;
+    font-size: 1.5rem;
+}
+
 h2{
     font-weight: 600;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
 }
 
 h3{
@@ -416,8 +426,8 @@ main .analyse{ /* Style Grid du block Main */
     align-items: start;
 }
 
-.canvas h1,h3{
-    text-align: center;
+.canvas h1, .canvas h3{
+    text-align: left;
 }
 
 .canvas canvas{
@@ -444,7 +454,7 @@ main .analyse{ /* Style Grid du block Main */
   z-index: 1;
   margin-bottom: 10px;
   text-align: center;
-  font-size: 26px;
+  font-size: 1.25rem;
 }
 
 .software-info h1::before { /* Box des En-tête */
@@ -606,11 +616,22 @@ main .analyse{ /* Style Grid du block Main */
 	margin: 10px;
 }
 
-/* Main container for the comparison layout */
+/* Main container for the three-column layout */
 #card-box-disambiguate {
   padding: 20px;
 }
 
+/* Three-column comparison row: Original | Comparison | Related, one per candidate */
+.software-card-dis {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+/* NOTE: the .dis-* rules below are retained but currently unused — the disambiguate
+   view was reverted to the three-column .software-card-dis layout above. */
 /* Two-pane layout: pinned Original on the left, candidate list on the right */
 .dis-layout {
   display: flex;
@@ -702,6 +723,12 @@ main .analyse{ /* Style Grid du block Main */
   transform: rotate(180deg);
 }
 
+.dis-candidate-loading {
+  padding: 12px 15px;
+  color: #999;
+  font-style: italic;
+}
+
 .dis-candidate-body {
   display: none;
   padding: 15px;
@@ -734,7 +761,8 @@ main .analyse{ /* Style Grid du block Main */
   }
 }
 
-/* Card styling shared by the related/result panels */
+/* Card styling shared by the three comparison columns */
+.original-software,
 .result-software,
 .related-software {
   background: white;
@@ -1148,7 +1176,7 @@ input#input-box-dis{
   z-index: 1;
   margin-bottom: 10px;
   text-align: center;
-  font-size: 26px;
+  font-size: 1.25rem;
 }
 
 .home-info h1::before { /* Box des En-tête */

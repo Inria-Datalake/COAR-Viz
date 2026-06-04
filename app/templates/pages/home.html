@@ -1,4 +1,4 @@
-{% extends "partials/conteneur.html" %}
+{% extends "partials/container.html" %}
 {% block body %}
 <main>
     <div class="home-container">
@@ -26,6 +26,21 @@
                             <canvas id="lineChartMentionRejected"></canvas>
                         </div>
                     </div>
+                    <div class="time_block">
+                        <div class="time_info">
+                            <canvas id="lineChartUsed"></canvas>
+                        </div>
+                    </div>
+                    <div class="time_block">
+                        <div class="time_info">
+                            <canvas id="lineChartCreated"></canvas>
+                        </div>
+                    </div>
+                    <div class="time_block">
+                        <div class="time_info">
+                            <canvas id="lineChartShared"></canvas>
+                        </div>
+                    </div>
                     <div class="time_block time_block--wide">
                         <div class="time_info">
                             <canvas id="barChartErrors"></canvas>
@@ -51,7 +66,7 @@
                   </div>
                 <div class="home-block">
                         <div class="home-data">
-                          <h2>Software mention:</h2>
+                          <h2>Mentions:</h2>
                           <p class="numbers_home" style="color:red;">{{ data['softwares_count'] }}</p>
                         </div>
                   </div>

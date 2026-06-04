@@ -2,7 +2,7 @@ from app.app import app, db
 import os
 from flask import render_template, request, jsonify
 from elasticsearch import Elasticsearch, NotFoundError
-from Utils.elastic_search import sync_to_elasticsearch
+from utils.elastic_search import sync_to_elasticsearch
 
 
 def _es_client():
