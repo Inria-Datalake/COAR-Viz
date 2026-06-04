@@ -13,8 +13,10 @@ _AGG_TAIL = """
     FILTER maxs != null
     LET dom = a.used.score == maxs ? "used"
             : (a.created.score == maxs ? "created" : "shared")
+    LET sw_name = soft.software_name.normalizedForm
+    FILTER sw_name != null AND TRIM(sw_name) != ""
     LET hal = DOCUMENT(e._from).file_hal_id
-    COLLECT attr = dom, name = soft.software_name.normalizedForm INTO hals = hal
+    COLLECT attr = dom, name = sw_name INTO hals = hal
     RETURN { attr: attr, name: name, mentions: LENGTH(hals), hal_ids: UNIQUE(hals) }
 """
 

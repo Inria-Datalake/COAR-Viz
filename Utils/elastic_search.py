@@ -90,7 +90,10 @@ def sync_to_elasticsearch(db):
 
     def fetch_software():
         cursor = db.AQLQuery(
-            'FOR software IN softwares RETURN DISTINCT {name : software.software_name.normalizedForm}',
+            'FOR software IN softwares '
+            'FILTER software.software_name.normalizedForm != null '
+            'AND TRIM(software.software_name.normalizedForm) != "" '
+            'RETURN DISTINCT {name : software.software_name.normalizedForm}',
             rawResults=True)
         return [doc for doc in cursor]
 
