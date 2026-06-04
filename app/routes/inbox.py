@@ -5,7 +5,7 @@ from flask import request, jsonify
 from xml.sax.saxutils import unescape
 from xml.dom import minidom
 from app.app import app, db
-from Utils.db import insert_json_db, update_nb_notification, update_nb_document_failed
+from Utils.db import insert_json_db, update_nb_notification, update_nb_document_failed, bump_cache_version
 from app.routes.blacklist_route import get_list_blacklist
 import re
 
@@ -229,6 +229,7 @@ def insert_json():
             final_log['errors'].append(f"Document {hal_id} wasn't removed.")
 
         update_nb_notification(db, hal_id)
+        bump_cache_version(db)  # invalidate cached dashboard aggregations across all workers
         final_log["status"] = "success"
         final_log["errors"].append(result[1])
         final_log["db_status"] = "inserted"

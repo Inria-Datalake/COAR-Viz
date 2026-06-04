@@ -136,6 +136,58 @@ def check_or_create_collection(db, collection_name, collection_type='Collection'
     return db[collection_name]
 
 
+# ---------------------------------------------------------------------------
+# Cache-invalidation counter. A single shared document whose integer `version`
+# is bumped on every data mutation (e.g. ingest). It's read cheaply (a
+# primary-key lookup) on each request to decide whether a per-process cached
+# result — such as the dashboard aggregation — is still valid. Because it lives
+# in ArangoDB, the signal is shared across all gunicorn workers, unlike a
+# per-process in-memory flag would be.
+# ---------------------------------------------------------------------------
+CACHE_VERSION_COLLECTION = 'cache_version'
+
+
+def bump_cache_version(db, name='dashboard'):
+    """Increment the shared cache-invalidation counter for `name`.
+
+    Call after any mutation that changes what cached aggregations return (e.g. a
+    successful ingest). Every worker sees the new value on its next read and
+    recomputes once. Best-effort: a failure here only costs a stale cache until
+    the consumer's backstop age elapses, so we log rather than raise.
+    """
+    check_or_create_collection(db, CACHE_VERSION_COLLECTION)
+    try:
+        db.AQLQuery(
+            f"""
+            UPSERT {{ _key: @k }}
+            INSERT {{ _key: @k, version: 1 }}
+            UPDATE {{ version: OLD.version + 1 }}
+            IN {CACHE_VERSION_COLLECTION}
+            """,
+            bindVars={'k': name}, rawResults=True
+        )
+    except Exception as e:
+        print(f"⚠️ Could not bump cache version '{name}': {e}")
+
+
+def get_cache_version(db, name='dashboard'):
+    """Return the current cache-invalidation counter for `name` (0 if unset).
+
+    A cheap single primary-key lookup. Any failure (collection not yet created,
+    transient error) returns 0, so callers treat the cache as valid at
+    version 0 rather than crashing; the first bump moves it off 0 and
+    invalidates every worker's cache.
+    """
+    try:
+        res = db.AQLQuery(
+            f"RETURN DOCUMENT('{CACHE_VERSION_COLLECTION}', @k).version",
+            bindVars={'k': name}, rawResults=True
+        )
+        return res[0] if res and res[0] is not None else 0
+    except Exception:
+        return 0
+
+
 # Secondary persistent indexes backing the many `FILTER doc.<field> == ...` AQL queries
 # across the app. Without these ArangoDB falls back to full collection scans (slow on the
 # ~59k documents / ~190k softwares / ~750k authors in production). Edge collections already
@@ -178,6 +230,9 @@ def ensure_indexes(db):
                 _ensure_persistent_index(collection, fields)
             except Exception as e:
                 print(f"⚠️ Could not ensure index {collection_name}{fields}: {e}")
+
+    # Shared cache-invalidation counter, read on every cached (dashboard) request.
+    check_or_create_collection(db, CACHE_VERSION_COLLECTION)
 
 
 def duplicates_JSON(lst):
