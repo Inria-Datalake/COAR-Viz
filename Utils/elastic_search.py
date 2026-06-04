@@ -1,20 +1,68 @@
 import os
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, helpers
+
+
+def _rebuild_index(es, name, index_body, fetch_documents):
+    """(Re)build a single Elasticsearch index in isolation.
+
+    Drops the index if present, recreates it with ``index_body``, then bulk-indexes
+    whatever ``fetch_documents()`` yields. Any failure is caught and returned as a
+    report entry instead of propagating, so one broken index (a bad record, an AQL
+    error) can no longer abort the rebuild of the *other* indices — previously a
+    failure before the ``authors`` step left that index uncreated entirely.
+
+    Indexing uses the streaming ``bulk`` helper (batched round-trips) instead of one
+    HTTP request per document, which is orders of magnitude faster on a real corpus —
+    the per-document loop made /elastic_update appear to hang. Progress is printed so
+    the rebuild is observable in the container logs.
+
+    ``fetch_documents`` is a zero-arg callable (deferred so its AQL query also runs
+    inside the try/except). Returns a dict suitable for the /elastic_update report.
+    """
+    try:
+        print(f"[elastic_update] rebuilding index '{name}' ...", flush=True)
+        if es.indices.exists(index=name):
+            es.indices.delete(index=name)
+        es.indices.create(index=name, body=index_body)
+
+        documents = fetch_documents()
+        print(f"[elastic_update] '{name}': {len(documents)} docs fetched from ArangoDB, bulk indexing ...",
+              flush=True)
+
+        indexed = 0
+        errors = []
+        if documents:
+            actions = ({"_index": name, "_source": doc} for doc in documents)
+            # raise_on_error=False -> a few bad docs are reported, not fatal.
+            indexed, errors = helpers.bulk(es, actions, raise_on_error=False, chunk_size=1000)
+
+        print(f"[elastic_update] '{name}': indexed {indexed}, errors {len(errors)}", flush=True)
+        result = {"index": name, "indexed": indexed}
+        if errors:
+            result["doc_errors"] = len(errors)
+        return result
+    except Exception as e:
+        print(f"[elastic_update] '{name}' FAILED: {type(e).__name__}: {e}", flush=True)
+        return {"index": name, "error": f"{type(e).__name__}: {e}"}
+
 
 def sync_to_elasticsearch(db):
+    """Drop and rebuild every search index from current ArangoDB contents.
+
+    Returns a list of per-index report dicts (``{"index", "indexed"}`` on success,
+    ``{"index", "error"}`` on failure) so callers — e.g. the /elastic_update route —
+    can surface exactly what was built and what failed.
+    """
 
     elastic_host = os.getenv('ELASTIC_HOST')
     elastic_port = os.getenv('ELASTIC_PORT')
 
     es = Elasticsearch(hosts=[f"http://{elastic_host}:{elastic_port}"], request_timeout=60)
+
+    report = []
+
     # SOFTWARE ---------------------------------
-    collection_software = db['softwares']
-    # Delete index if exists
-    print(es)
-    if es.indices.exists(index="softwares"):
-        es.indices.delete(index="softwares")
-    # Create index with lowercase normalizer mapping
-    index_body = {
+    software_body = {
         "settings": {
             "analysis": {
                 "normalizer": {
@@ -39,23 +87,17 @@ def sync_to_elasticsearch(db):
             }
         }
     }
-    es.indices.create(index="softwares", body=index_body)
-    # Fetch distinct software names from ArangoDB
-    cursor = db.AQLQuery('FOR software IN softwares RETURN DISTINCT {name : software.software_name.normalizedForm}',
-                         rawResults=True)
-    list_software_names = list(cursor)
-    # Index each document into Elasticsearch
-    for doc in list_software_names:
-        es.index(index='softwares', document=doc)
+
+    def fetch_software():
+        cursor = db.AQLQuery(
+            'FOR software IN softwares RETURN DISTINCT {name : software.software_name.normalizedForm}',
+            rawResults=True)
+        return [doc for doc in cursor]
+
+    report.append(_rebuild_index(es, "softwares", software_body, fetch_software))
 
     # DOCUMENT -----------------------------
-    # Delete if index exists
-    # Delete the index if it exists
-    if es.indices.exists(index="titles"):
-        es.indices.delete(index="titles")
-
-    # Create index with n-gram analyzer for partial matching
-    index_body = {
+    titles_body = {
         "settings": {
             "index": {
                 "max_ngram_diff": 20  # must be >= max_gram - min_gram
@@ -93,22 +135,16 @@ def sync_to_elasticsearch(db):
         }
     }
 
-    es.indices.create(index="titles", body=index_body)
+    def fetch_titles():
+        cursor = db.AQLQuery(
+            'FOR doc IN documents RETURN DISTINCT { title: doc.title, hal_id: doc.file_hal_id}',
+            rawResults=True)
+        return [{"title": doc['title'], "doc_id": doc['hal_id']} for doc in cursor]
 
-    # Fetch distinct titles and ids from ArangoDB
-    cursor = db.AQLQuery('FOR doc IN documents RETURN DISTINCT { title: doc.title, hal_id: doc.file_hal_id}',
-                         rawResults=True)
-    list_titles = list(cursor)
-    # Index each document into Elasticsearch
-    for doc in list_titles:
-        es.index(index="titles", document={"title": doc['title'], "doc_id": doc['hal_id']})
+    report.append(_rebuild_index(es, "titles", titles_body, fetch_titles))
 
     # AUTHOR ---------------------------------
-    # Delete if exists
-    if es.indices.exists(index="authors"):
-        es.indices.delete(index="authors")
-
-    index_body = {
+    authors_body = {
         "settings": {
             "analysis": {
                 "normalizer": {
@@ -135,31 +171,29 @@ def sync_to_elasticsearch(db):
             }
         }
     }
-    es.indices.create(index="authors", body=index_body)
-    # Fetch distinct authors from ArangoDB
-    cursor = db.AQLQuery('''
-           FOR author IN authors
-           RETURN DISTINCT {
-               first_name: author.name.forename,
-               last_name: author.name.surname,
-               author_id: author.id.halauthorid
-           }
-       ''', rawResults=True)
-    authors_list = list(cursor)
-    # Index authors into Elasticsearch
-    for author in authors_list:
-        es.index(index='authors', document={
-            'first_name': author['first_name'],
-            'last_name': author['last_name'],
-            'author_id': author['author_id']
-        })
+
+    def fetch_authors():
+        cursor = db.AQLQuery('''
+               FOR author IN authors
+               RETURN DISTINCT {
+                   first_name: author.name.forename,
+                   last_name: author.name.surname,
+                   author_id: author.id.halauthorid
+               }
+           ''', rawResults=True)
+        return [
+            {
+                'first_name': author['first_name'],
+                'last_name': author['last_name'],
+                'author_id': author['author_id']
+            }
+            for author in cursor
+        ]
+
+    report.append(_rebuild_index(es, "authors", authors_body, fetch_authors))
 
     # STRUCTURE ---------------------------------------------
-    # Delete index if exists
-    if es.indices.exists(index="structures"):
-        es.indices.delete(index="structures")
-
-    index_body = {
+    structures_body = {
         "settings": {
             "analysis": {
                 "analyzer": {
@@ -209,37 +243,28 @@ def sync_to_elasticsearch(db):
         }
     }
 
-    es.indices.create(index="structures", body=index_body)
-
-    # Fetch distinct structures and acronyms from ArangoDB
-    cursor = db.AQLQuery('''
-           FOR struc IN structures
-           RETURN DISTINCT {
-               struct_title: struc.name,
-               struct_acronym: struc.acronym,
-               struct_id: struc.id_haureal
-           }
-       ''', rawResults=True)
-
-    list_structures = list(cursor)
-
-    # Index each structure document
-    for struc in list_structures:
-        es.index(
-            index="structures",
-            document={
+    def fetch_structures():
+        cursor = db.AQLQuery('''
+               FOR struc IN structures
+               RETURN DISTINCT {
+                   struct_title: struc.name,
+                   struct_acronym: struc.acronym,
+                   struct_id: struc.id_haureal
+               }
+           ''', rawResults=True)
+        return [
+            {
                 "structure": struc['struct_title'],
                 "struct_acronym": struc['struct_acronym'],
                 "structure_id": struc['struct_id']
             }
-        )
+            for struc in cursor
+        ]
+
+    report.append(_rebuild_index(es, "structures", structures_body, fetch_structures))
 
     # URLS ---------------------------------------------
-    # Delete the index if it exists
-    if es.indices.exists(index="urls"):
-        es.indices.delete(index="urls")
-
-    index_body = {
+    urls_body = {
         "settings": {
             "analysis": {
                 "analyzer": {
@@ -280,29 +305,23 @@ def sync_to_elasticsearch(db):
         }
     }
 
-    es.indices.create(index="urls", body=index_body)
+    def fetch_urls():
+        cursor = db.AQLQuery('''
+            FOR url_soft IN softwares
+                FILTER url_soft.url != null
+                FOR edge in edge_doc_to_software
+                    FILTER edge._to == url_soft._id
+                    LET doc = DOCUMENT(edge._from)
+                    RETURN DISTINCT {
+                        doc_id: doc.file_hal_id,
+                        url: url_soft.url.normalizedForm
+                    }
+        ''', rawResults=True)
+        return [
+            {"doc_id": url_doc["doc_id"], "url": url_doc["url"]}
+            for url_doc in cursor
+        ]
 
-    # Fetch URLs from 'softwares' collection and include only doc_id
-    cursor = db.AQLQuery('''
-        FOR url_soft IN softwares
-            FILTER url_soft.url != null
-            FOR edge in edge_doc_to_software
-                FILTER edge._to == url_soft._id
-                LET doc = DOCUMENT(edge._from)
-                RETURN DISTINCT {
-                    doc_id: doc.file_hal_id,
-                    url: url_soft.url.normalizedForm
-                }
-    ''', rawResults=True)
+    report.append(_rebuild_index(es, "urls", urls_body, fetch_urls))
 
-    url_list = list(cursor)
-
-    # Index each URL with its document ID
-    for url_doc in url_list:
-        es.index(
-            index="urls",
-            document={
-                "doc_id": url_doc["doc_id"],
-                "url": url_doc["url"]
-            }
-        )
+    return report

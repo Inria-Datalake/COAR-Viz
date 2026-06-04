@@ -33,8 +33,11 @@ def _es_search(es, index, body, size):
 # Trigger Elasticsearch sync manually
 @app.route('/elastic_update')
 def elastic_update():
-    sync_to_elasticsearch(db)
-    return "Elastic executed manually!"
+    report = sync_to_elasticsearch(db)
+    # Surface the per-index report so a partial/failed rebuild is visible instead of
+    # silently claiming success. HTTP 500 if any index failed to build.
+    failed = any("error" in entry for entry in report)
+    return jsonify({"status": "error" if failed else "ok", "indices": report}), (500 if failed else 200)
 
 @app.route('/search')
 def search_html():
