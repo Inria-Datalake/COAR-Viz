@@ -1,103 +1,110 @@
-from collections import Counter
 from pyArango.theExceptions import AQLQueryError
-from tqdm import tqdm
+
+
+# Aggregation tail shared by the global and structure-scoped variants: given a software
+# mention edge `e`, keep mentions that carry a usable characterization, pick the dominant
+# attribute (highest score; ties resolve used > created > shared), then group by
+# (attribute, software) returning the distinct documents and the mention count.
+_AGG_TAIL = """
+    LET soft = DOCUMENT(e._to)
+    LET a = soft.mentionContextAttributes
+    FILTER a != null
+    LET maxs = MAX([a.used.score, a.created.score, a.shared.score])
+    FILTER maxs != null
+    LET dom = a.used.score == maxs ? "used"
+            : (a.created.score == maxs ? "created" : "shared")
+    LET hal = DOCUMENT(e._from).file_hal_id
+    COLLECT attr = dom, name = soft.software_name.normalizedForm INTO hals = hal
+    RETURN { attr: attr, name: name, mentions: LENGTH(hals), hal_ids: UNIQUE(hals) }
+"""
+
+# Documents affiliated with a given structure (its HAL/HAuREAL id).
+_DOCSET = """
+    LET docset = (
+        FOR struct IN structures
+            FILTER struct.id_haureal == @structure
+            FOR es IN edge_doc_to_struc
+                FILTER es._to == struct._id
+                RETURN DISTINCT es._from
+    )
+"""
 
 
 def dashboard(db, structure):
+    """Aggregate software-mention characterizations for the dashboard.
+
+    Everything is computed server-side in two AQL queries (one grouping, one totals)
+    instead of fetching every document/edge/software individually. Returns the 7-element
+    list consumed by ``app/templates/pages/dashboard.html``:
+
+        [0] attributes_count : {"used": int, "created": int, "shared": int}
+        [1] doc_with_mention : int
+        [2] nb_mention       : int   (every software edge, incl. uncharacterized ones)
+        [3] doc_wno_mention  : int
+        [4] used_software    : {software_name: [[hal_id, ...], mention_count]}
+        [5] shared_software  : same shape
+        [6] created_software : same shape
+    """
     try:
-        # Define queries based on whether structure is specified
         if structure:
-            query = """
-                FOR struct IN structures
-                FILTER struct.id_haureal == @structure
-                LET struct_id = struct._id
-                FOR edge_struc IN edge_doc_to_struc
-                    FILTER edge_struc._to == struct_id
-                    FOR file_id IN documents
-                        FILTER file_id._id == edge_struc._from
-                        RETURN DISTINCT {
-                            id: struct_id,
-                            _id: file_id._id,
-                            hal_id: file_id.file_hal_id
-                        }
+            agg_query = _DOCSET + """
+                FOR docid IN docset
+                    FOR e IN edge_doc_to_software
+                        FILTER e._from == docid
+            """ + _AGG_TAIL
+            totals_query = _DOCSET + """
+                LET inscope = (
+                    FOR docid IN docset
+                        FOR e IN edge_doc_to_software
+                            FILTER e._from == docid
+                            RETURN docid
+                )
+                RETURN {
+                    total_docs: LENGTH(docset),
+                    total_mentions: LENGTH(inscope),
+                    docs_with: LENGTH(UNIQUE(inscope))
+                }
             """
             bind_vars = {'structure': structure}
         else:
-            query = """
-                FOR file_id IN documents
-                RETURN { _id: file_id._id, hal_id: file_id.file_hal_id }
+            agg_query = "FOR e IN edge_doc_to_software" + _AGG_TAIL
+            totals_query = """
+                RETURN {
+                    total_docs: LENGTH(documents),
+                    total_mentions: LENGTH(edge_doc_to_software),
+                    docs_with: LENGTH(
+                        FOR e IN edge_doc_to_software
+                            COLLECT d = e._from
+                            RETURN 1
+                    )
+                }
             """
             bind_vars = {}
 
-        # Execute queries
-        file_id_list = db.AQLQuery(query, bindVars=bind_vars, rawResults=True, batchSize=2000)
+        rows = db.AQLQuery(agg_query, bindVars=bind_vars, rawResults=True, batchSize=5000)
+        totals = db.AQLQuery(totals_query, bindVars=bind_vars, rawResults=True, batchSize=1)
 
     except AQLQueryError:
         return 'AQL query error: Unable to fetch files'
 
-    attributes_count = Counter()
-    used_software = Counter()
-    created_software = Counter()
-    shared_software = Counter()
-    software_attribute_mentions = {
-        'used': Counter(),
-        'shared': Counter(),
-        'created': Counter()
-    }
+    attributes_count = {'used': 0, 'created': 0, 'shared': 0}
+    used_software = {}
+    created_software = {}
+    shared_software = {}
+    buckets = {'used': used_software, 'created': created_software, 'shared': shared_software}
 
-    nb_mention = 0
-    doc_with_mention = 0
-    doc_wno_mention = 0
+    for row in rows:
+        bucket = buckets.get(row['attr'])
+        if bucket is None:
+            continue
+        attributes_count[row['attr']] += row['mentions']
+        bucket[row['name']] = [row['hal_ids'], row['mentions']]
 
-    # Process each file to count software mentions and attributes
-    for file in tqdm(file_id_list):
-        hal_id = file['hal_id']
-        file_id = file['_id']
+    totals = totals[0] if totals else {'total_docs': 0, 'total_mentions': 0, 'docs_with': 0}
+    nb_mention = totals['total_mentions']
+    doc_with_mention = totals['docs_with']
+    doc_wno_mention = totals['total_docs'] - totals['docs_with']
 
-        edges = db['edge_doc_to_software'].getEdges(file_id)
-        if edges:
-            doc_with_mention += 1
-            for edge in edges:
-                nb_mention += 1
-                software_id = edge['_to'][10:]
-                json_software = db['softwares'].fetchDocument(software_id).getStore()
-                software = json_software['software_name']['normalizedForm']
-
-                if 'mentionContextAttributes' not in json_software:
-                    continue
-
-                max_attribute, max_score = max(
-                    json_software["mentionContextAttributes"].items(),
-                    key=lambda item: item[1]["score"],
-                    default=(None, float('-inf'))
-                )
-
-                if max_attribute:
-                    attributes_count[max_attribute] += 1
-                    software_attribute_mentions[max_attribute][software] += 1
-                    attribute_dict = {
-                        'created': created_software,
-                        'shared': shared_software,
-                        'used': used_software
-                    }.get(max_attribute, None)
-
-                    if attribute_dict is not None:
-                        if hal_id not in attribute_dict.setdefault(software, []):
-                            attribute_dict[software].append(hal_id)
-        else:
-            doc_wno_mention += 1
-    # Print and update the counts for 'used' software
-    for software, count in software_attribute_mentions['used'].items():
-        if software in used_software:
-            used_software[software] = [used_software[software], count]
-
-    for software, count in software_attribute_mentions['created'].items():
-        if software in created_software:
-            created_software[software] = [created_software[software], count]
-
-    for software, count in software_attribute_mentions['shared'].items():
-        if software in shared_software:
-            shared_software[software] = [shared_software[software], count]
     return [
         attributes_count,
         doc_with_mention,
@@ -105,5 +112,5 @@ def dashboard(db, structure):
         doc_wno_mention,
         used_software,
         shared_software,
-        created_software
+        created_software,
     ]

@@ -1,114 +1,104 @@
 <p align="center">
-    <h1 align="center">SOFTware-Viz</h1>
+    <h1 align="center">COAR-Viz</h1>
 </p>
 <div align="center">
   <img src="https://github.com/user-attachments/assets/43b01db2-450e-4d9d-a805-cb37f861bdb2" alt="logo_full_HUB" width="250" />
 </div>
 
 <p align="center">
-	<!-- local repository, no metadata badges. -->
-<p>
-<p align="center">
-		<em>Developed with the software and tools below.</em>
+		<em>A fork of <a href="https://github.com/Samuel-Scalbert/SOFTware-Viz">SOFTware-Viz</a>. Developed with the software and tools below.</em>
 </p>
 <p align="center">
 	<img src="https://img.shields.io/badge/HTML5-E34F26.svg?style=default&logo=HTML5&logoColor=white" alt="HTML5">
 	<img src="https://img.shields.io/badge/Python-3776AB.svg?style=default&logo=Python&logoColor=white" alt="Python">
-	<img src="https://img.shields.io/github/last-commit/Samuel-Scalbert/SOFTware-Viz?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
-	<img src="https://img.shields.io/github/languages/top/Samuel-Scalbert/SOFTware-Viz?style=default&color=0080ff" alt="repo-top-language">
-	<img src="https://img.shields.io/github/languages/count/Samuel-Scalbert/SOFTware-Viz?style=default&color=0080ff" alt="repo-language-count">
+	<img src="https://img.shields.io/badge/Flask-000000.svg?style=default&logo=Flask&logoColor=white" alt="Flask">
+	<img src="https://img.shields.io/badge/ArangoDB-DDE072.svg?style=default&logo=ArangoDB&logoColor=black" alt="ArangoDB">
+	<img src="https://img.shields.io/badge/Elasticsearch-005571.svg?style=default&logo=Elasticsearch&logoColor=white" alt="Elasticsearch">
 </p>
 
 ![Capture d’écran du 2024-06-03 16-39-41](https://github.com/Samuel-Scalbert/SOFTware-Viz/assets/32683708/6be2a593-0508-4e52-a7cb-2cf28b768f00)
 
 ## Presentation of the project
 
-🛑 This application is currently designed to interact with and harvest metadata from HAL linked to the database.
+COAR-Viz is a Flask web application that **visualizes software mentions** extracted from scholarly
+papers. It is the visualization + storage stage of a larger pipeline. Data lives in **ArangoDB**
+(a multi-model graph database) and is mirrored into **Elasticsearch** for search and autocomplete.
 
-🛑 A lighter version of the application is under development, allowing anyone to create their own application without requiring a connection to HAL.
+> 🛑 This application is currently coupled to **HAL** (`api.archives-ouvertes.fr`) for fetching TEI
+> XML and citations.
+>
+> 🛑 A lighter version that runs without a HAL connection is under development.
 
-### DB of PDF
-The process begins with a Database of PDF files. These PDFs are scholarly PDFs that need to be extracted and processed.
+### The pipeline
 
-### GROBID
-The PDFs are sent to GROBID, a tool used to extract structured data (like bibliographic information) from scholarly PDFs. GROBID processes the PDFs and outputs XML files. This is a crucial step in extracting machine-readable information from the documents.
+```
+Scholarly PDFs → GROBID → SOFTCITE → SOFTware-Sync → COAR-Viz (this app)
+                (TEI XML)   (JSON)    (merged doc)    ArangoDB + Elasticsearch + Flask
+```
 
-### SOFTCITE
-After GROBID, the extracted data (likely enriched or supplemented data) is passed to SOFTCITE, which generates JSON outputs. SOFTCITE analyzes citations, software mentions, or related information in the PDF files like references.
-
-### SOFTware-Sync
-The extracted data (XML and JSON) is then passed to SOFTware-Sync, which is a tool that synchronizes the data into one single XML.
-
-### SOFTware-Viz
-SOFTware-Viz is responsible for visualizing the processed data. It likely takes the synchronized data from SOFTware-Sync and transforms it into visual outputs or dashboards.
-
-### ArangoDB
-The processed data is stored in ArangoDB, a multi-model NoSQL database, to manage both structured data. This database serves as the main storage for the extracted information/mentions.
-
-### Flask
-Flask is a web framework used for developing web applications. Flask interacts with both SOFTware-Viz (for visualizations) and ArangoDB (for retrieving data).
+| Stage | Role |
+|-------|------|
+| **DB of PDF** | The corpus of scholarly PDFs to be extracted and processed. |
+| **GROBID** | Extracts structured **TEI XML** (bibliographic metadata, body text) from each PDF. |
+| **SOFTCITE** | Detects **software mentions** and references, emitting a `.software.json` per document. |
+| **SOFTware-Sync** | Merges the TEI XML and SOFTCITE JSON into a single document. |
+| **COAR-Viz** | Ingests the merged data into ArangoDB, mirrors it to Elasticsearch, and serves the dashboards, document views, and search. |
 
 ---
-##  Installation
+## Installation
+
+This app needs **two services reachable**: an **ArangoDB** server and an **Elasticsearch** server.
+ArangoDB stores the graph; Elasticsearch backs search/autocomplete and **ingestion is refused if it
+is unreachable**.
 
 <h4>From <code>source</code></h4>
 
-> 1. Clone the  repository:
->
+> 1. Clone the repository and enter it:
 > ```console
-> git clone ../
+> git clone <repository-url>
+> cd COAR-Viz
 > ```
 >
-> 2. Change to the project directory:
-> ```console
-> cd ./SOFTware-viz
-> ```
->
-> 3. Create a virtualenv:
+> 2. Create and activate a virtualenv:
 > ```console
 > python -m venv env
+> source env/bin/activate
 > ```
 >
-> 4. Install docker image
+> 3. Install the dependencies:
 > ```console
-> docker pull arangodb/arangodb:3.11.6
+> pip install -r requirements.txt
 > ```
 >
-> 5. Launch docker container
+> 4. Start an ArangoDB container (the app creates the `SOF-viz-COAR` database on first launch,
+>    but not the server itself):
 > ```console
 > docker run -p 8529:8529 -e ARANGO_NO_AUTH=1 arangodb/arangodb:3.11.6
 > ```
 >
-> 6. Create the database "SOF-viz"
->```
-> go to the port http://localhost:8529/ and create mannualy the database named "SOF-viz"
->```
+> 5. Start an Elasticsearch instance and make sure it is reachable.
 >
-> 7. Launch the virtualenv
-> ```console
-> source env/bin/activate
-> ```
->
-> 8. Install the dependencies:
-> ```console
-> pip install -r requirement.txt
-> ```
-> 
-> 9. Launch the app
+> 6. Set the required environment variables (see below), then launch the app:
 > ```console
 > python run.py
 > ```
->
+
+### Required environment variables
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `ARANGO_HOST`, `ARANGO_PORT` | ArangoDB connection | none — must be set |
+| `ARANGO_LOGIN` | ArangoDB user | `root` |
+| `ARANGO_PASSWORD` | ArangoDB password | `changeme` |
+| `ELASTIC_HOST`, `ELASTIC_PORT` | Elasticsearch connection | none — must be set |
+
 ###  Usage
 
-<h4>From <code>source</code></h4>
-
-> Run  using the command below (the database will create itself only on the first launch):
+> Run with the command below — the `SOF-viz-COAR` database is created automatically on the first
+> launch:
 > ```console
 > python run.py
 > ```
-
----
-##  License
-
-This project is protected under the [SELECT-A-LICENSE](https://choosealicense.com/licenses) License. For more details, refer to the [LICENSE](https://choosealicense.com/licenses/) file.
+>
+> The app serves on **`http://0.0.0.0:8040`**. It assumes it runs behind a reverse proxy mounted at
+> **`/software`** (every generated URL is prefixed with `/software`; see `run.py`).

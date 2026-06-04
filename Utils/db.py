@@ -136,6 +136,50 @@ def check_or_create_collection(db, collection_name, collection_type='Collection'
     return db[collection_name]
 
 
+# Secondary persistent indexes backing the many `FILTER doc.<field> == ...` AQL queries
+# across the app. Without these ArangoDB falls back to full collection scans (slow on the
+# ~59k documents / ~190k softwares / ~750k authors in production). Edge collections already
+# carry an automatic `_from`/`_to` edge index, so traversals need nothing extra here.
+INDEX_FIELDS = {
+    'documents':  [['file_hal_id'], ['date']],
+    'structures': [['id_haureal'], ['type']],
+    'softwares':  [['software_name.normalizedForm'], ['url.normalizedForm']],
+    'authors':    [['id.halauthorid']],
+}
+
+
+def _ensure_persistent_index(collection, fields):
+    """Create one sparse persistent index, building it in the background when supported.
+
+    `pyArango.ensurePersistentIndex` has no `inBackground` argument, so prefer the generic
+    `ensureIndex`, which forwards extra kwargs straight to ArangoDB's index API (background
+    build avoids write-locking large collections). Fall back to the typed helper on older
+    pyArango versions that lack `ensureIndex`.
+    """
+    if hasattr(collection, "ensureIndex"):
+        try:
+            return collection.ensureIndex("persistent", fields, sparse=True, inBackground=True)
+        except TypeError:
+            pass  # signature mismatch — fall through to the typed helper
+    return collection.ensurePersistentIndex(fields, sparse=True)
+
+
+def ensure_indexes(db):
+    """Create the secondary persistent indexes the app relies on.
+
+    Idempotent and safe to call on every startup: ArangoDB returns the existing index when
+    one with the same definition already exists. `sparse=True` skips documents missing the
+    field (e.g. softwares without a `url`).
+    """
+    for collection_name, field_sets in INDEX_FIELDS.items():
+        collection = check_or_create_collection(db, collection_name)
+        for fields in field_sets:
+            try:
+                _ensure_persistent_index(collection, fields)
+            except Exception as e:
+                print(f"⚠️ Could not ensure index {collection_name}{fields}: {e}")
+
+
 def duplicates_JSON(lst):
     seen = set()
     duplicates = []

@@ -1,6 +1,7 @@
 from flask import Flask, render_template
 from pyArango.connection import Connection
 from Utils.home import home_data
+from Utils.db import ensure_indexes
 import os
 
 app = Flask(__name__,template_folder='templates',static_folder='static')
@@ -33,6 +34,7 @@ def init_db():
     )[app.config['ARANGO_DB']]
 
 init_db()  # Call the init_db function to initialize the db variable
+ensure_indexes(db)  # Create the secondary indexes the FILTER-by-field AQL relies on
 #sync_to_elasticsearch(db)
 
 structure = None
