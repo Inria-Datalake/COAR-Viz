@@ -3,7 +3,7 @@ import time
 
 from pyArango.theExceptions import AQLQueryError
 
-from Utils.db import get_cache_version
+from utils.db import get_cache_version
 
 
 # Aggregation tail shared by the global and structure-scoped variants: given a software

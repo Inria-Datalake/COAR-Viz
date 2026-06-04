@@ -1,8 +1,8 @@
 from flask import Flask, render_template
 from pyArango.connection import Connection
 from dotenv import load_dotenv
-from Utils.home import home_data
-from Utils.db import ensure_indexes
+from utils.home import home_data
+from utils.db import ensure_indexes
 import os
 
 # Load variables from a local .env (if present) before they are read below.

@@ -1,7 +1,7 @@
 import os
 import json
 from pyArango.theExceptions import AQLQueryError
-from Utils.TEI_to_JSON import transformer_TEI_JSON
+from utils.TEI_to_JSON import transformer_TEI_JSON
 import requests
 from datetime import date
 import xml.etree.ElementTree as ET

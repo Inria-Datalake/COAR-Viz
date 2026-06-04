@@ -1,6 +1,6 @@
 from app.app import app, db
 from flask import render_template, jsonify
-from Utils.disambiguate import disambiguate_from_software, fetch_for_software
+from utils.disambiguate import disambiguate_from_software, fetch_for_software
 from rapidfuzz import fuzz
 
 @app.route('/disambiguate')

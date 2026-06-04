@@ -107,7 +107,7 @@ image works in containers without a `.env` file.
 
 The database name (`SOF-viz-COAR`) is fixed in code and created automatically on first launch.
 The app also creates its secondary ArangoDB indexes automatically on startup (`ensure_indexes`
-in `Utils/db.py`, called from `app/app.py`); this is idempotent and safe on every launch.
+in `utils/db.py`, called from `app/app.py`); this is idempotent and safe on every launch.
 
 ###  Usage
 

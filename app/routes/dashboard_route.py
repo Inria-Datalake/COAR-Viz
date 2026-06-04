@@ -1,5 +1,5 @@
 from app.app import app, db
-from Utils.dashboard import dashboard
+from utils.dashboard import dashboard
 from flask import render_template
 import re
 

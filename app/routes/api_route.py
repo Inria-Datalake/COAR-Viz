@@ -1,6 +1,6 @@
-from Utils.db import update_nb_rejected, update_nb_accepted
+from utils.db import update_nb_rejected, update_nb_accepted
 from app.app import app, db
-from Utils.author import author_info_from_id
+from utils.author import author_info_from_id
 from flask import jsonify, Response
 from datetime import date, timedelta
 import json
@@ -36,7 +36,7 @@ def line_chart_data():
     # Single pass over edge_doc_to_software grouped by (year, dominant attribute),
     # instead of one full edge-collection scan per year (previously 5 scans). The
     # dominant attribute is the highest of used/created/shared, ties resolving
-    # used > created > shared — matching Utils/dashboard.py's _AGG_TAIL.
+    # used > created > shared — matching utils/dashboard.py's _AGG_TAIL.
     query = '''
         FOR edge IN edge_doc_to_software
             LET doc = DOCUMENT(edge._from)

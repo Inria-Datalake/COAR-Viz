@@ -1,6 +1,6 @@
 from app.app import app, db
 from flask import render_template, jsonify
-from Utils.software import software_all_mentions,software_all_mentions_chart_api, dataset_creator
+from utils.software import software_all_mentions,software_all_mentions_chart_api, dataset_creator
 
 @app.route('/software_stat/<software>')
 def software_mentions(software):

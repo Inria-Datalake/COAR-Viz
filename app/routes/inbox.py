@@ -5,7 +5,7 @@ from flask import request, jsonify
 from xml.sax.saxutils import unescape
 from xml.dom import minidom
 from app.app import app, db
-from Utils.db import insert_json_db, update_nb_notification, update_nb_document_failed, bump_cache_version
+from utils.db import insert_json_db, update_nb_notification, update_nb_document_failed, bump_cache_version
 from app.routes.blacklist_route import get_list_blacklist
 import re
 
