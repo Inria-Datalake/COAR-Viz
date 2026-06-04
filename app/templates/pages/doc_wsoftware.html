@@ -1,82 +1,83 @@
 {% extends "partials/conteneur.html" %}
 {% block body %}
-<div>
-    <div class="titre-block"><h2 style="padding: 5px">{{ data[4] }} (<span style="color: red">{{ data[9] }}</span>)</h2></div>
-   <div class="flex-container">
-       <div class="info_doc">
+<main class="doc-view">
+    <div class="titre-block doc-view__title"><h2 style="padding: 5px">{{ data[4] }} (<span style="color: red">{{ data[9] }}</span>)</h2></div>
 
-            {% if data[1][0] == "GROBID" %}
-                <div class="doc_abstract">
-                   <h1>Abstract (<span style="color: red">scrapped with Grobid</span>)</h1>
-                   <p style="overflow-y: auto;">{{ data[1][1] }}</p>
-                </div>
-            {% elif data[1][0] == "HAL"%}
-                <div class="doc_abstract">
-                   <h1>Abstract (<span style="color: green">scrapped from HAL</span>)</h1>
-                   <p style="overflow-y: auto;">{{ data[1][1] }}</p>
-               </div>
-            {% endif %}
+    <div class="doc-view__body">
+        <aside class="doc-side">
+            <div class="doc-card">
+                <h1>Authors</h1>
+                <ul class="top_ul">
+                    {% for author in data[6] %}
+                    <li>{{ author }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
 
-           <div class="doc_author">
-               <h1>Authors</h1>
-               <ul class="top_ul">
-                   {% for author in data[6] %}
-                   <li>{{ author }}</li>
-                   {% endfor %}
-               </ul>
-           </div>
-
-           <div class="doc_affi">
-               <h1>Affiliations</h1>
-               <ul class="top_ul">
-               {% for dic in data[7] %}
-                   {% for type,affiliations in dic.items() %}
-                       <h4>{{ type }}</h4>
-                       {% for affi in affiliations %}
-                           <li style="padding-left: 10px">{{ affi }}</li>
-                        {% endfor %}
-                   {% endfor %}
-               {% endfor %}
-               </ul>
-           </div>
-
-           <div class="doc_soft">
-             <h1>Softwares cited in this article :</h1>
-             <ul class="top_ul">
-                {% for hal_id in data[3] %}
-                <li>
-                   <a href="{{ url_for('doc_info_wsoftware',doc_id=data[5], software=hal_id) }}">{{ hal_id }}</a>
-                </li>
+            <div class="doc-card">
+                <h1>Affiliations</h1>
+                <ul class="top_ul">
+                {% for dic in data[7] %}
+                    {% for type,affiliations in dic.items() %}
+                        <h4>{{ type }}</h4>
+                        {% for affi in affiliations %}
+                            <li style="padding-left: 10px">{{ affi }}</li>
+                         {% endfor %}
+                    {% endfor %}
                 {% endfor %}
-             </ul>
-          </div>
-          <div class="contexts">
-                    <p><span id="waiting_for_the_answer"><strong>Waiting for Author Verification:</strong></span> The software citation has been submitted, but the author has not yet confirmed whether it is correct.</p>
-                    <p><span id="accepted_by_the_author"><strong>Verified by Author:</strong></span> The author confirmed that this software was correctly cited in the article.</p>
-                    <p><span id="rejected_by_the_author"><strong>Rejected by Author:</strong></span> The author indicated that this software citation is incorrect or not relevant to the article.</p>
-               <h4> Url of the document:</h4>
-               <a href="https://inria.hal.science/{{ data[5] }}">https://inria.hal.science/{{ data[5] }}</a>
-           </div>
+                </ul>
+            </div>
 
-       </div>
-      {% for attrib,lists_context in data[0].items() %}
-      {% if lists_context|length > 0 %}
-      <div class="contexts">
-         <p class="titre">Contexts «{{ attrib }}»</p>
-         <ul class="software-list" style="padding-left:15px">
-            {% for context in lists_context %}
-            <li>"{{ context | safe  }}"</li>
-            {% endfor %}
-         </ul>
-      </div>
-      {% endif %}
-      {% endfor %}
-      <!--<div class="source">
-         <p class="titre">Source</p>
-         {{ data[2] | safe }}
-      </div>-->
-   </div>
-</div>
+            <div class="doc-card">
+                <h1>Softwares cited in this article</h1>
+                <ul class="top_ul">
+                    {% for hal_id in data[3] %}
+                    <li>
+                        <a href="{{ url_for('doc_info_wsoftware',doc_id=data[5], software=hal_id) }}">{{ hal_id }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="doc-card doc-legend">
+                <p><span id="waiting_for_the_answer"><strong>Waiting for Author Verification:</strong></span> The software citation has been submitted, but the author has not yet confirmed whether it is correct.</p>
+                <p><span id="accepted_by_the_author"><strong>Verified by Author:</strong></span> The author confirmed that this software was correctly cited in the article.</p>
+                <p><span id="rejected_by_the_author"><strong>Rejected by Author:</strong></span> The author indicated that this software citation is incorrect or not relevant to the article.</p>
+                <h4>Url of the document:</h4>
+                <a href="https://inria.hal.science/{{ data[5] }}">https://inria.hal.science/{{ data[5] }}</a>
+            </div>
+        </aside>
+
+        <section class="doc-main">
+            {% if data[1][0] == "GROBID" %}
+                <div class="doc-card doc-card--abstract">
+                    <h1>Abstract (<span style="color: red">scrapped with Grobid</span>)</h1>
+                    <p>{{ data[1][1] }}</p>
+                </div>
+            {% elif data[1][0] == "HAL" %}
+                <div class="doc-card doc-card--abstract">
+                    <h1>Abstract (<span style="color: green">scrapped from HAL</span>)</h1>
+                    <p>{{ data[1][1] }}</p>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <div class="doc-contexts">
+        {% for attrib,lists_context in data[0].items() %}
+        {% if lists_context|length > 0 %}
+        <div class="contexts">
+            <p class="titre">Contexts «{{ attrib }}»</p>
+            <ul class="software-list" style="padding-left:15px">
+                {% for context in lists_context %}
+                <li>"{{ context | safe }}"</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</main>
 {% endblock %}
 
 {% block scripts %}
